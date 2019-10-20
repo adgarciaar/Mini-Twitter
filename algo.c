@@ -127,6 +127,21 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
 
 }
 
+/* guardarTweet: recibe un tweet y lo guarda en la posicion recibida*/
+
+bool guardarTweet (char* tweet, int posUsuario, int posTweet, usuario *arreglo_usuarios) {
+
+bool guardado=false;
+
+arreglo_usuarios[posUsuario].tweets[posTweet]=tweet;
+
+guardado=true;
+
+return guardado;
+	
+
+}  
+
 int main (int argc, char **argv) {
     /*usar realloc() para cambiar tamaño en ejecución */
     int i,j;
