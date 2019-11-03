@@ -94,7 +94,7 @@ void enviarTweet(){
 
     printf("Digite el tweet:\n");
     /*scanf(" %[^\n]", tweet);*/
-    scanf(" %20[^\n]s", tweet);
+    scanf(" %200[^\n]s", tweet);
     strcat(tweet, "\0");
 
     while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
@@ -162,6 +162,9 @@ int main (int argc, char **argv){
     comunicacionInicialCliente datosProcesoCliente;
     int opcion = 0;
     int numero_bytes;
+    int status, c;
+    char cOpcion;
+    int contador;
 
     char* pipeInicial;
 
@@ -244,14 +247,47 @@ int main (int argc, char **argv){
             printf("Presione 2 para unfollow\n");
             printf("Presione 3 para tweet\n");
             printf("Presione 4 para desconexion\n");
-            printf("Digite numero de la opcion: \n");
-            scanf("%d", &opcion);
+            printf("Digite numero de la opcion: ");
 
-            if(opcion < 1 || opcion > 4){
-                printf("Opcion es incorrecta");
+            status = scanf("%c", &cOpcion);
+            while ((c = fgetc(stdin)) != '\n' && c != EOF){
+                contador = contador + 1;
+            }; /* Flush stdin */
+
+            while(contador>0 || (int)cOpcion <49 || (int)cOpcion>52){
+                contador = 0;
+                printf("Error: por favor ingrese un número válido\n");
+                printf("Digite numero de la opcion: ");
+		            status = scanf("%c", &cOpcion);
+                while ((c = fgetc(stdin)) != '\n' && c != EOF){
+                    contador = contador + 1;
+                };
             }
 
-            if(opcion >= 1 && opcion <=3){
+            /*opcion = (int)cOpcion;*/
+
+            switch ( (int)cOpcion ){
+                case 49:
+                    opcion = 1;
+                    break;
+                case 50:
+                    opcion = 2;
+                    break;
+                case 51:
+                    opcion = 3;
+                    break;
+                case 52:
+                    opcion = 4;
+                    break;
+            }
+
+            printf("Digitado fue %d\n", opcion);
+
+            /*if(opcion < 49 || opcion > 52){
+                printf("Opcion es incorrecta");
+            }*/
+
+            if(opcion >= 1 && opcion <=4){
 
                 switch (opcion){
                     case 1:
