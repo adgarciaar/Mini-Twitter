@@ -21,6 +21,7 @@ char mensaje[TAMMENSAJE];
 char pipeEspecifico[25] = "pipeCliente";
 bool clienteAceptado;
 int pidServidor;
+int idCliente;
 
 typedef void (*sighandler_t)(int);
 
@@ -75,20 +76,61 @@ sighandler_t signalHandler (void){
 
 }
 
+void follow(){
+
+}
+
+void unfollow(){
+
+}
+
+void enviarTweet(){
+    int confirmacionSenal;
+    mensajeDelCliente mensaje_a_enviar;
+    char tweet[200];
+
+    printf("Digite el tweet:\n");
+    scanf(" %[^\n]", tweet);
+
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.desconexion = false;
+    mensaje_a_enviar.numeroCliente = idCliente;
+    strcpy(mensaje_a_enviar.mensaje , tweet);
+
+    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+    printf("Tweet enviado al servidor\n");
+    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
+}
+
+void desconectar(){
+    int confirmacionSenal;
+    mensajeDelCliente mensaje_a_enviar;
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.desconexion = true;
+    mensaje_a_enviar.numeroCliente = idCliente;
+    strcpy(mensaje_a_enviar.mensaje , "");
+
+    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+    printf("Desconexion avisada al servidor\n");
+    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
+}
+
 int main (int argc, char **argv){
 
     int  fd, pid, creado = 0, res;
     infoPipe datosProcesoCliente;
     int opcion = 0;
     int numero_bytes;
-    int confirmacionSenal;
 
-    int idCliente;
     char* pipeInicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
-
-    mensajeDelCliente mensaje_a_enviar;
 
     clienteAceptado = false;
 
@@ -177,25 +219,15 @@ int main (int argc, char **argv){
                 switch (opcion){
                     case 1:
                         printf("Ejecutar follow");
+                        follow();
                         break;
                     case 2:
                         printf("Ejecutar unfollow");
+                        unfollow();
                         break;
                     case 3:
                         printf("Ejecutar tweet");
-
-                        mensaje_a_enviar.pid = getpid();
-                        mensaje_a_enviar.desconexion = false;
-                        mensaje_a_enviar.numeroCliente = idCliente;
-                        strcpy(mensaje_a_enviar.mensaje , "Quiero jugar Apex Legends\n");
-
-                        write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
-                        printf("Tweet enviado al servidor\n");
-                        confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-                        if(confirmacionSenal == -1){
-                            perror("No se pudo enviar señal");
-                        }
-
+                        enviarTweet();
                         break;
                 }
             }
@@ -203,23 +235,9 @@ int main (int argc, char **argv){
 
     } while (opcion != 4);
 
-    mensaje_a_enviar.pid = getpid();
-    mensaje_a_enviar.desconexion = true;
-    mensaje_a_enviar.numeroCliente = idCliente;
-    strcpy(mensaje_a_enviar.mensaje , "");
-
-    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
-    printf("Desconexion avisada al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-    if(confirmacionSenal == -1){
-        perror("No se pudo enviar señal");
-    }
-
+    desconectar();
     sleep(2);
-
     unlink(pipeEspecifico);
-
     printf("Desconexion realizada\n");
-
     exit(0);
 }

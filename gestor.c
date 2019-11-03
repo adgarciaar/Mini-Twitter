@@ -56,10 +56,10 @@ sighandler_t signalHandler (void){
                     clientesEstados[i].activo = false;
                     clientesEstados[i].pid = -1;
                     strcpy(clientesEstados[i].pipeEspecifico , "");
-                    printf("Se desconecta el cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
+                    printf("Se desconecta el cliente con id %d y pid %d\n\n",  mensajeRecibido.numeroCliente,
                         mensajeRecibido.pid);
                 }else{
-                    printf("Tweet enviado: %s\n", mensajeRecibido.mensaje);
+                    printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
                 }
             }
             close(pipeConPaquete);
