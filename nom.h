@@ -3,8 +3,9 @@
 typedef struct data {
     int pid;
     int numeroCliente;
-    char pipeEspecifico[20];
-} infoPipe;
+    char pipe_cliente_a_servidor[30];
+    char pipe_servidor_a_cliente[30];
+} comunicacionInicialCliente;
 
 typedef struct {
     int pid;
@@ -21,6 +22,7 @@ typedef struct {
 
 typedef struct {
     int pid;
-    char pipeEspecifico[20];
-    bool activo;
+    char pipe_cliente_a_servidor[30];
+    char pipe_servidor_a_cliente[30];
+    int activo;
 } estadosClientes;

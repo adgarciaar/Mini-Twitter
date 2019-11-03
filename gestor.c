@@ -23,7 +23,7 @@ typedef void (*sighandler_t)(int);
 
 sighandler_t signalHandler (void){
 
-    int i, pipeConPaquete, creado = 0;
+    int i, id_pipe_cliente_a_servidor, creado = 0;
     int numero_bytes;
     mensajeDelCliente mensajeRecibido;
 
@@ -31,38 +31,45 @@ sighandler_t signalHandler (void){
 
     for(i=0;i<numeroUsuarios;i++){
 
-        if ( strcmp(clientesEstados[i].pipeEspecifico,"") != 0 ){
-
-            /*printf("el especifico revisandose es %s\n", clientesEstados[i].pipeEspecifico);*/
+        if ( clientesEstados[i].activo == true ){
 
             creado = 0;
             do {
-               if ((pipeConPaquete = open(clientesEstados[i].pipeEspecifico, O_RDONLY | O_NONBLOCK)) == -1) {
+               id_pipe_cliente_a_servidor = open(clientesEstados[i].pipe_cliente_a_servidor, O_RDONLY | O_NONBLOCK);
+               if (id_pipe_cliente_a_servidor == -1) {
                   perror("\nServer abriendo el pipe especifico\n");
                   printf("Se volvera a intentar despues\n");
                   sleep(5);
                } else creado = 1;
             }  while (creado == 0);
 
-            numero_bytes = read (pipeConPaquete, &mensajeRecibido, sizeof(mensajeRecibido) );
+            numero_bytes = read (id_pipe_cliente_a_servidor, &mensajeRecibido, sizeof(mensajeDelCliente) );
             /*if (numero_bytes == -1){
                 perror("proceso servidor: ");
                 /*exit(1);
             }*/
+            if(numero_bytes==0){
+              printf("\nel especifico revisandose es %s\n", clientesEstados[i].pipe_cliente_a_servidor);
+            }
             if(numero_bytes > 0){
                 printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
                     mensajeRecibido.pid);
-                if(mensajeRecibido.desconexion == true){
+
+                if(mensajeRecibido.desconexion == 1){
+
                     clientesEstados[i].activo = false;
                     clientesEstados[i].pid = -1;
-                    strcpy(clientesEstados[i].pipeEspecifico , "");
+                    strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
+                    strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
                     printf("Se desconecta el cliente con id %d y pid %d\n\n",  mensajeRecibido.numeroCliente,
                         mensajeRecibido.pid);
+
                 }else{
                     printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
                 }
             }
-            close(pipeConPaquete);
+
+            /*close(pipeConPaquete);*/
         }
 
     }
@@ -73,19 +80,11 @@ sighandler_t signalHandler (void){
 }
 
 
-void manejarNuevaConexion(infoPipe nuevoCliente){
+void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
+
+    int id_pipe_servidor_a_cliente, creado = 0, confirmacionSenal, id_pipe_cliente_a_servidor;
 
     printf("Enviando respuesta inicial a cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
-
-    int fd1, creado = 0, confirmacionSenal;
-
-    do {
-       if ((fd1 = open(nuevoCliente.pipeEspecifico, O_WRONLY| O_NONBLOCK)) == -1) {
-          perror("\nServer abriendo el pipe especifico\n");
-          printf("Se volvera a intentar despues\n");
-          sleep(5);
-       } else creado = 1;
-    }  while (creado == 0);
 
     mensajeDelServidor mensajeParaCliente;
 
@@ -94,13 +93,40 @@ void manejarNuevaConexion(infoPipe nuevoCliente){
     if (nuevoCliente.numeroCliente < 1 || nuevoCliente.numeroCliente>10){
         mensajeParaCliente.numeroMensajes = -1;
     }else{
-        mensajeParaCliente.numeroMensajes = 0;
-        clientesEstados[ nuevoCliente.numeroCliente - 1 ].pid = nuevoCliente.pid;
-        strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipeEspecifico , nuevoCliente.pipeEspecifico);
-        clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo = true;
+        if( clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo == true ){
+          //si ese cliente ya está conectado entonces esta nueva conexión no es válida
+            mensajeParaCliente.numeroMensajes = -2;
+        }else{
+            mensajeParaCliente.numeroMensajes = 0;
+            clientesEstados[ nuevoCliente.numeroCliente - 1 ].pid = nuevoCliente.pid;
+            strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipe_cliente_a_servidor , nuevoCliente.pipe_cliente_a_servidor);
+            strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipe_servidor_a_cliente , nuevoCliente.pipe_servidor_a_cliente);
+            clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo = true;
+
+            creado = 0;
+            do {
+               id_pipe_cliente_a_servidor = open(nuevoCliente.pipe_cliente_a_servidor, O_RDONLY | O_NONBLOCK);
+               if (id_pipe_cliente_a_servidor == -1) {
+                  perror("\nServer abriendo el pipe especifico\n");
+                  printf("Se volvera a intentar despues\n");
+                  sleep(5);
+               } else creado = 1;
+            }  while (creado == 0);
+        }
     }
 
-    write(fd1, &mensajeParaCliente, sizeof(mensajeParaCliente) );
+    do {
+       id_pipe_servidor_a_cliente = open(nuevoCliente.pipe_servidor_a_cliente, O_WRONLY| O_NONBLOCK);
+       if ( id_pipe_servidor_a_cliente == -1 ) {
+          perror("\nServer abriendo el pipe especifico\n");
+          printf("Se volvera a intentar despues\n");
+          sleep(5);
+       } else creado = 1;
+    }  while (creado == 0);
+
+    write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+
+    /*close(fd1);*/
 
     confirmacionSenal = kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
@@ -112,8 +138,8 @@ void manejarNuevaConexion(infoPipe nuevoCliente){
 
 int main (int argc, char **argv){
 
-    int  fd, fd1,  pid, n, cuantos,res,creado=0,i;
-    infoPipe datosProcesoCliente;
+    int id_pipe_inicial, fd1,  pid, n, cuantos,res,creado=0,i;
+    comunicacionInicialCliente datosProcesoCliente;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
 
@@ -128,7 +154,8 @@ int main (int argc, char **argv){
     for(i=0;i<numeroUsuarios;i++){
         clientesEstados[i].pid = 0;
         clientesEstados[i].activo = false;
-        strcpy(clientesEstados[i].pipeEspecifico , "");
+        strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
+        strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
     }
 
     /* Instalar manejador de la señal */
@@ -148,21 +175,22 @@ int main (int argc, char **argv){
        exit(1);
     }
 
-    do {
-       fd = open (argv[1], O_RDONLY);
-       if (fd == -1) {
-           perror("Pipe: ");
-           printf(" Se volvera a intentar despues\n");
-           sleep(5);
-       } else creado = 1;
-    } while (creado == 0);
-
     int numeroClienteConectado;
     int numero_bytes;
 
     while(1){
 
-        numero_bytes = read (fd, &datosProcesoCliente, sizeof(infoPipe) );
+        creado = 0;
+        do {
+           id_pipe_inicial = open (argv[1], O_RDONLY);
+           if (id_pipe_inicial == -1) {
+               perror("Pipe: ");
+               printf(" Se volvera a intentar despues\n");
+               sleep(5);
+           } else creado = 1;
+        } while (creado == 0);
+
+        numero_bytes = read (id_pipe_inicial, &datosProcesoCliente, sizeof(comunicacionInicialCliente) );
         if (numero_bytes == -1){
             perror("proceso servidor: ");
             exit(1);
@@ -172,9 +200,10 @@ int main (int argc, char **argv){
 
             printf("\n\nSe conectó un cliente con id %d y pid %d\n", datosProcesoCliente.numeroCliente
               ,datosProcesoCliente.pid);
-            printf("Comunicación con cliente con id %d y pid %d se hará a través de %s\n",
+            printf("Comunicación con cliente con id %d y pid %d se hará a través de %s y %s\n",
               datosProcesoCliente.numeroCliente,datosProcesoCliente.pid,
-              datosProcesoCliente.pipeEspecifico);
+              datosProcesoCliente.pipe_cliente_a_servidor,
+              datosProcesoCliente.pipe_servidor_a_cliente);
             manejarNuevaConexion(datosProcesoCliente);
 
         }

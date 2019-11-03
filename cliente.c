@@ -16,9 +16,10 @@ Nota:
 
 #define TAMMENSAJE 200
 
-int fd1;
+int id_pipe_cliente_a_servidor, id_pipe_servidor_a_cliente;
 char mensaje[TAMMENSAJE];
-char pipeEspecifico[25] = "pipeCliente";
+char pipe_cliente_a_servidor[30] = "pipeCliente";
+char pipe_servidor_a_cliente[30] = "pipeCliente";
 bool clienteAceptado;
 int pidServidor;
 int idCliente;
@@ -33,21 +34,21 @@ sighandler_t signalHandler (void){
     mensajeDelServidor mensajeRecibido;
 
     do {
-       fd1 = open(pipeEspecifico, O_RDONLY | O_NONBLOCK);
-       if (fd1 == -1) {
+       id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
+       if (id_pipe_servidor_a_cliente == -1) {
            perror("pipe");
-           printf(" Se volvera a intentar despues\n");
+           printf(" Se volverá a intentar después\n");
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
 
-    printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
-
-    numero_bytes = read (fd1, &mensajeRecibido, sizeof(mensajeRecibido) );
+    numero_bytes = read (id_pipe_servidor_a_cliente, &mensajeRecibido, sizeof(mensajeRecibido) );
     if (numero_bytes == -1){
         perror("proceso servidor: ");
         exit(1);
     }
+
+    printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
     pidServidor = mensajeRecibido.pid;
     /*printf("%s", mensajeRecibido.mensaje);*/
@@ -67,7 +68,8 @@ sighandler_t signalHandler (void){
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
     if(mensajeRecibido.numeroMensajes < 0){
-        unlink(pipeEspecifico);
+        unlink(pipe_cliente_a_servidor);
+        unlink(pipe_servidor_a_cliente);
         printf("Desconexion realizada\n");
         exit(1);
     }else{
@@ -88,16 +90,27 @@ void enviarTweet(){
     int confirmacionSenal;
     mensajeDelCliente mensaje_a_enviar;
     char tweet[200];
+    int creado = 0;
 
     printf("Digite el tweet:\n");
     scanf(" %[^\n]", tweet);
 
     mensaje_a_enviar.pid = getpid();
-    mensaje_a_enviar.desconexion = false;
+    mensaje_a_enviar.desconexion = 0;
     mensaje_a_enviar.numeroCliente = idCliente;
     strcpy(mensaje_a_enviar.mensaje , tweet);
 
-    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+    do {
+       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_cliente_a_servidor == -1) {
+           perror("pipe");
+           printf(" Se volvera a intentar despues\n");
+           sleep(10);
+       } else creado = 1;
+    } while (creado == 0);
+
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+
     printf("Tweet enviado al servidor\n");
     confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
@@ -106,14 +119,26 @@ void enviarTweet(){
 }
 
 void desconectar(){
-    int confirmacionSenal;
-    mensajeDelCliente mensaje_a_enviar;
-    mensaje_a_enviar.pid = getpid();
-    mensaje_a_enviar.desconexion = true;
-    mensaje_a_enviar.numeroCliente = idCliente;
-    strcpy(mensaje_a_enviar.mensaje , "");
 
-    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+    int confirmacionSenal;
+    int creado = 0;
+    mensajeDelCliente mensaje_a_enviar;
+
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.desconexion = 1;
+    mensaje_a_enviar.numeroCliente = idCliente;
+
+    do {
+       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_cliente_a_servidor == -1) {
+           perror("pipe");
+           printf(" Se volvera a intentar despues\n");
+           sleep(10);
+       } else creado = 1;
+    } while (creado == 0);
+
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+
     printf("Desconexion avisada al servidor\n");
     confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
@@ -123,8 +148,8 @@ void desconectar(){
 
 int main (int argc, char **argv){
 
-    int  fd, pid, creado = 0, res;
-    infoPipe datosProcesoCliente;
+    int id_pipe_inicial, pid, creado = 0, res;
+    comunicacionInicialCliente datosProcesoCliente;
     int opcion = 0;
     int numero_bytes;
 
@@ -147,45 +172,59 @@ int main (int argc, char **argv){
     idCliente = atoi(argv[2]);
     pipeInicial = argv[4];
 
-    /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
-    do {
-       fd = open(pipeInicial, O_WRONLY|O_NONBLOCK);
-       if (fd == -1) {
-           perror("pipe");
-           printf(" Se volvera a intentar despues\n");
-  	       sleep(10);
-       } else creado = 1;
-    } while (creado == 0);
-
     pid = getpid();
     char stringPidProceso[10];
     sprintf(stringPidProceso, "%d", pid);
-    strcat(pipeEspecifico, stringPidProceso);
+
+    strcat(pipe_cliente_a_servidor, stringPidProceso);
+    strcat(pipe_cliente_a_servidor, "_c_a_s");
+    strcat(pipe_servidor_a_cliente, stringPidProceso);
+    strcat(pipe_servidor_a_cliente, "_s_a_c");
 
     datosProcesoCliente.pid = pid;
-    strcpy(datosProcesoCliente.pipeEspecifico, pipeEspecifico);
+    strcpy(datosProcesoCliente.pipe_cliente_a_servidor, pipe_cliente_a_servidor);
+    strcpy(datosProcesoCliente.pipe_servidor_a_cliente, pipe_servidor_a_cliente);
     datosProcesoCliente.numeroCliente = idCliente;
 
     /*Se crea un pipe específico para la comunicación con el server.*/
-    unlink(pipeEspecifico);
-    if (mkfifo (datosProcesoCliente.pipeEspecifico, fifo_mode) == -1) {
+    unlink(pipe_cliente_a_servidor);
+    if (mkfifo (pipe_cliente_a_servidor, fifo_mode) == -1) {
        perror("Client  mkfifo");
        exit(1);
     }
-    printf("\nPipe especifico creado: %s\n", pipeEspecifico);
+    printf("\nPipe especifico creado: %s\n", pipe_cliente_a_servidor);
 
-    /*Se abre el pipe específicos*/
-   do {
-      fd1 = open(pipeEspecifico, O_RDONLY | O_NONBLOCK);
-      if (fd1 == -1) {
-          perror("pipe");
-          printf(" Se volvera a intentar despues\n");
-          sleep(10);
-      } else creado = 1;
-   } while (creado == 0);
+    /*Se crea un pipe específico para la comunicación con el server.*/
+    unlink(pipe_servidor_a_cliente);
+    if (mkfifo (pipe_servidor_a_cliente, fifo_mode) == -1) {
+       perror("Client  mkfifo");
+       exit(1);
+    }
+    printf("\nPipe especifico creado: %s\n", pipe_servidor_a_cliente);
+
+    /*Se abre el pipe del servidor al cliente*/
+    creado = 0;
+     do {
+        id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
+        if (id_pipe_servidor_a_cliente == -1) {
+            perror("pipe");
+            printf(" Se volvera a intentar despues\n");
+            sleep(10);
+        } else creado = 1;
+     } while (creado == 0);
+
+     /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
+     do {
+        id_pipe_inicial = open(pipeInicial, O_WRONLY|O_NONBLOCK);
+        if (id_pipe_inicial == -1) {
+            perror("pipe");
+            printf(" Se volvera a intentar despues\n");
+   	       sleep(10);
+        } else creado = 1;
+     } while (creado == 0);
 
     /* se envia el nombre del pipe al otro proceso. */
-    write(fd, &datosProcesoCliente , sizeof(datosProcesoCliente));
+    write(id_pipe_inicial, &datosProcesoCliente , sizeof(comunicacionInicialCliente));
 
     /*pause();*/
 
@@ -205,16 +244,6 @@ int main (int argc, char **argv){
             }
 
             if(opcion >= 1 && opcion <=3){
-
-                creado = 0;
-                do {
-                   fd1 = open(pipeEspecifico, O_WRONLY | O_NONBLOCK);
-                   if (fd1 == -1) {
-                       perror("pipe");
-                       printf(" Se volvera a intentar despues\n");
-                       sleep(10);
-                   } else creado = 1;
-                } while (creado == 0);
 
                 switch (opcion){
                     case 1:
@@ -236,8 +265,9 @@ int main (int argc, char **argv){
     } while (opcion != 4);
 
     desconectar();
-    sleep(2);
-    unlink(pipeEspecifico);
+    sleep(1);
+    unlink(pipe_cliente_a_servidor);
+    unlink(pipe_servidor_a_cliente);
     printf("Desconexion realizada\n");
     exit(0);
 }
