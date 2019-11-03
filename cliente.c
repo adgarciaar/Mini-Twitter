@@ -11,7 +11,6 @@ Nota:
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include "nom.h"
 
@@ -21,6 +20,7 @@ int fd1;
 char mensaje[TAMMENSAJE];
 char pipeEspecifico[25] = "pipeCliente";
 bool clienteAceptado;
+int pidServidor;
 
 typedef void (*sighandler_t)(int);
 
@@ -31,6 +31,15 @@ sighandler_t signalHandler (void){
     char mensaje[200];
     mensajeDelServidor mensajeRecibido;
 
+    do {
+       fd1 = open(pipeEspecifico, O_RDONLY | O_NONBLOCK);
+       if (fd1 == -1) {
+           perror("pipe");
+           printf(" Se volvera a intentar despues\n");
+           sleep(10);
+       } else creado = 1;
+    } while (creado == 0);
+
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
     numero_bytes = read (fd1, &mensajeRecibido, sizeof(mensajeRecibido) );
@@ -38,6 +47,8 @@ sighandler_t signalHandler (void){
         perror("proceso servidor: ");
         exit(1);
     }
+
+    pidServidor = mensajeRecibido.pid;
     /*printf("%s", mensajeRecibido.mensaje);*/
 
     if(mensajeRecibido.numeroMensajes == -2){
@@ -70,11 +81,14 @@ int main (int argc, char **argv){
     infoPipe datosProcesoCliente;
     int opcion = 0;
     int numero_bytes;
+    int confirmacionSenal;
 
     int idCliente;
     char* pipeInicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
+
+    mensajeDelCliente mensaje_a_enviar;
 
     clienteAceptado = false;
 
@@ -149,6 +163,17 @@ int main (int argc, char **argv){
             }
 
             if(opcion >= 1 && opcion <=3){
+
+                creado = 0;
+                do {
+                   fd1 = open(pipeEspecifico, O_WRONLY | O_NONBLOCK);
+                   if (fd1 == -1) {
+                       perror("pipe");
+                       printf(" Se volvera a intentar despues\n");
+                       sleep(10);
+                   } else creado = 1;
+                } while (creado == 0);
+
                 switch (opcion){
                     case 1:
                         printf("Ejecutar follow");
@@ -158,12 +183,39 @@ int main (int argc, char **argv){
                         break;
                     case 3:
                         printf("Ejecutar tweet");
+
+                        mensaje_a_enviar.pid = getpid();
+                        mensaje_a_enviar.desconexion = false;
+                        mensaje_a_enviar.numeroCliente = idCliente;
+                        strcpy(mensaje_a_enviar.mensaje , "Quiero jugar Apex Legends\n");
+
+                        write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+                        printf("Tweet enviado al servidor\n");
+                        confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+                        if(confirmacionSenal == -1){
+                            perror("No se pudo enviar señal");
+                        }
+
                         break;
                 }
             }
         }
 
     } while (opcion != 4);
+
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.desconexion = true;
+    mensaje_a_enviar.numeroCliente = idCliente;
+    strcpy(mensaje_a_enviar.mensaje , "");
+
+    write(fd1, &mensaje_a_enviar , sizeof(mensaje_a_enviar));
+    printf("Desconexion avisada al servidor\n");
+    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
+
+    sleep(2);
 
     unlink(pipeEspecifico);
 

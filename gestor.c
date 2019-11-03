@@ -11,23 +11,73 @@ Nota:
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include "nom.h"
 
 #define TAMNOM 200
 
+int numeroUsuarios;
+estadosClientes* clientesEstados;
+
 typedef void (*sighandler_t)(int);
 
 sighandler_t signalHandler (void){
-    printf("%s\n", " ");
+
+    int i, pipeConPaquete, creado = 0;
+    int numero_bytes;
+    mensajeDelCliente mensajeRecibido;
+
+    printf("\n\nRecibiendo un paquete de un cliente");
+
+    for(i=0;i<numeroUsuarios;i++){
+
+        if ( strcmp(clientesEstados[i].pipeEspecifico,"") != 0 ){
+
+            /*printf("el especifico revisandose es %s\n", clientesEstados[i].pipeEspecifico);*/
+
+            creado = 0;
+            do {
+               if ((pipeConPaquete = open(clientesEstados[i].pipeEspecifico, O_RDONLY | O_NONBLOCK)) == -1) {
+                  perror("\nServer abriendo el pipe especifico\n");
+                  printf("Se volvera a intentar despues\n");
+                  sleep(5);
+               } else creado = 1;
+            }  while (creado == 0);
+
+            numero_bytes = read (pipeConPaquete, &mensajeRecibido, sizeof(mensajeRecibido) );
+            /*if (numero_bytes == -1){
+                perror("proceso servidor: ");
+                /*exit(1);
+            }*/
+            if(numero_bytes > 0){
+                printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
+                    mensajeRecibido.pid);
+                if(mensajeRecibido.desconexion == true){
+                    clientesEstados[i].activo = false;
+                    clientesEstados[i].pid = -1;
+                    strcpy(clientesEstados[i].pipeEspecifico , "");
+                    printf("Se desconecta el cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
+                        mensajeRecibido.pid);
+                }else{
+                    printf("Tweet enviado: %s\n", mensajeRecibido.mensaje);
+                }
+            }
+            close(pipeConPaquete);
+        }
+
+    }
+
+  /*  printf("\n\nRecibiendo un paquete de cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);*/
+
+
 }
+
 
 void manejarNuevaConexion(infoPipe nuevoCliente){
 
     printf("Enviando respuesta inicial a cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
 
-    int fd1, creado = 0, opcion;
+    int fd1, creado = 0, confirmacionSenal;
 
     do {
        if ((fd1 = open(nuevoCliente.pipeEspecifico, O_WRONLY| O_NONBLOCK)) == -1) {
@@ -45,21 +95,41 @@ void manejarNuevaConexion(infoPipe nuevoCliente){
         mensajeParaCliente.numeroMensajes = -1;
     }else{
         mensajeParaCliente.numeroMensajes = 0;
+        clientesEstados[ nuevoCliente.numeroCliente - 1 ].pid = nuevoCliente.pid;
+        strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipeEspecifico , nuevoCliente.pipeEspecifico);
+        clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo = true;
     }
 
     write(fd1, &mensajeParaCliente, sizeof(mensajeParaCliente) );
 
-    kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
+    confirmacionSenal = kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
 
     printf("Enviada respuesta inicial a cliente con id %d y pid %d\n\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
 }
 
 int main (int argc, char **argv){
 
-    int  fd, fd1,  pid, n, cuantos,res,creado=0;
+    int  fd, fd1,  pid, n, cuantos,res,creado=0,i;
     infoPipe datosProcesoCliente;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
+
+    numeroUsuarios = 10;
+
+    clientesEstados = (estadosClientes*)malloc(numeroUsuarios*sizeof(estadosClientes));
+    if (clientesEstados == NULL) {
+        perror("Memoria no alocada");
+        exit(1);
+    }/*end if*/
+
+    for(i=0;i<numeroUsuarios;i++){
+        clientesEstados[i].pid = 0;
+        clientesEstados[i].activo = false;
+        strcpy(clientesEstados[i].pipeEspecifico , "");
+    }
 
     /* Instalar manejador de la señal */
     signal (SIGUSR1, (sighandler_t)signalHandler);
