@@ -55,12 +55,15 @@ sighandler_t signalHandler (void){
     if(mensajeRecibido.numeroMensajes == -2){
         printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a desconectar.");
     }
-
     if(mensajeRecibido.numeroMensajes == -1){
         printf("El id del cliente no es válido, no existe dentro del registro. Se procede a desconectar.");
     }
     if(mensajeRecibido.numeroMensajes == 0){
         printf("El id del cliente es válido");
+    }
+    if(mensajeRecibido.numeroMensajes == 1){
+        printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
+        printf("Tweet: %s\n", mensajeRecibido.mensaje);
     }
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
     if(mensajeRecibido.numeroMensajes < 0){
@@ -256,7 +259,7 @@ int main (int argc, char **argv){
 
             while(contador>0 || (int)cOpcion <49 || (int)cOpcion>52){
                 contador = 0;
-                printf("Error: por favor ingrese un número válido\n");
+                printf("Error: por favor ingrese un número válido (entre 1 y 4)\n");
                 printf("Digite numero de la opcion: ");
 		            status = scanf("%c", &cOpcion);
                 while ((c = fgetc(stdin)) != '\n' && c != EOF){
@@ -280,8 +283,6 @@ int main (int argc, char **argv){
                     opcion = 4;
                     break;
             }
-
-            printf("Digitado fue %d\n", opcion);
 
             /*if(opcion < 49 || opcion > 52){
                 printf("Opcion es incorrecta");

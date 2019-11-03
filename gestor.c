@@ -23,9 +23,10 @@ typedef void (*sighandler_t)(int);
 
 sighandler_t signalHandler (void){
 
-    int i, id_pipe_cliente_a_servidor, creado = 0;
+    int i, j, id_pipe_cliente_a_servidor, id_pipe_servidor_a_cliente, creado = 0;
     int numero_bytes;
     mensajeDelCliente mensajeRecibido;
+    int confirmacionSenal;
 
     printf("\n\nRecibiendo un paquete de un cliente\n");
 
@@ -64,6 +65,38 @@ sighandler_t signalHandler (void){
                     case 3:
                         printf("Cliente envió un tweet\n");
                         printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
+
+                        mensajeDelServidor mensajeParaCliente;
+
+                        mensajeParaCliente.pid = getpid();
+                        mensajeParaCliente.numeroMensajes = 1;
+                        strcpy(mensajeParaCliente.mensaje, mensajeRecibido.mensaje);
+                        mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
+
+                        //enviar tweet a los seguidores de dicho cliente*/
+                        for(j=0;j<numeroUsuarios;j++){
+                            if ( clientesEstados[j].activo == true && i!=j ){
+
+                                creado = 0;
+                                do {
+                                   id_pipe_servidor_a_cliente = open(clientesEstados[j].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
+                                   if (id_pipe_servidor_a_cliente == -1) {
+                                      perror("Server abriendo el pipe especifico\n");
+                                      printf("Se volvera a intentar despues\n");
+                                      sleep(5);
+                                   } else creado = 1;
+                                }  while (creado == 0);
+
+                                write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+
+                                confirmacionSenal = kill (clientesEstados[j].pid, SIGUSR1); /*enviar la señal*/
+                                if(confirmacionSenal == -1){
+                                    perror("No se pudo enviar señal");
+                                }
+                                printf("Enviado tweet a cliente con id %d y pid %d\n", j+1, clientesEstados[j].pid);
+                            }
+                        }
+
                         break;
                     case 4: // se va a desconectar
                         printf("Cliente solicitó desconexión\n");
