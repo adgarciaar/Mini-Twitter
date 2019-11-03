@@ -27,7 +27,7 @@ sighandler_t signalHandler (void){
     int numero_bytes;
     mensajeDelCliente mensajeRecibido;
 
-    printf("\n\nRecibiendo un paquete de un cliente");
+    printf("\n\nRecibiendo un paquete de un cliente\n");
 
     for(i=0;i<numeroUsuarios;i++){
 
@@ -37,7 +37,7 @@ sighandler_t signalHandler (void){
             do {
                id_pipe_cliente_a_servidor = open(clientesEstados[i].pipe_cliente_a_servidor, O_RDONLY | O_NONBLOCK);
                if (id_pipe_cliente_a_servidor == -1) {
-                  perror("\nServer abriendo el pipe especifico\n");
+                  perror("Server abriendo el pipe especifico\n");
                   printf("Se volvera a intentar despues\n");
                   sleep(5);
                } else creado = 1;
@@ -48,35 +48,41 @@ sighandler_t signalHandler (void){
                 perror("proceso servidor: ");
                 /*exit(1);
             }*/
-            if(numero_bytes==0){
-              printf("\nel especifico revisandose es %s\n", clientesEstados[i].pipe_cliente_a_servidor);
-            }
             if(numero_bytes > 0){
                 printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
                     mensajeRecibido.pid);
 
-                if(mensajeRecibido.desconexion == 1){
+                switch (mensajeRecibido.operacion){
+                    case 1:
+                        printf("Cliente solicitó ejecutar follow\n");
 
-                    clientesEstados[i].activo = false;
-                    clientesEstados[i].pid = -1;
-                    strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
-                    strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
-                    printf("Se desconecta el cliente con id %d y pid %d\n\n",  mensajeRecibido.numeroCliente,
-                        mensajeRecibido.pid);
+                        break;
+                    case 2:
+                        printf("Cliente solicitó ejecutar unfollow\n");
 
-                }else{
-                    printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
+                        break;
+                    case 3:
+                        printf("Cliente envió un tweet\n");
+                        printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
+                        break;
+                    case 4: // se va a desconectar
+                        printf("Cliente solicitó desconexión\n");
+                        clientesEstados[i].activo = false;
+                        clientesEstados[i].pid = -1;
+                        strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
+                        strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
+                        printf("Se desconecta el cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
+                            mensajeRecibido.pid);
+                        break;
                 }
+
             }
 
-            /*close(pipeConPaquete);*/
         }
 
     }
 
-  /*  printf("\n\nRecibiendo un paquete de cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);*/
-
-
+    printf("El paquete ha sido procesado\n\n");
 }
 
 
@@ -125,8 +131,6 @@ void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
     }  while (creado == 0);
 
     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
-
-    /*close(fd1);*/
 
     confirmacionSenal = kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){

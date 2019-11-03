@@ -51,7 +51,6 @@ sighandler_t signalHandler (void){
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
     pidServidor = mensajeRecibido.pid;
-    /*printf("%s", mensajeRecibido.mensaje);*/
 
     if(mensajeRecibido.numeroMensajes == -2){
         printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a desconectar.");
@@ -60,13 +59,10 @@ sighandler_t signalHandler (void){
     if(mensajeRecibido.numeroMensajes == -1){
         printf("El id del cliente no es válido, no existe dentro del registro. Se procede a desconectar.");
     }
-
     if(mensajeRecibido.numeroMensajes == 0){
         printf("El id del cliente es válido");
     }
-
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
-
     if(mensajeRecibido.numeroMensajes < 0){
         unlink(pipe_cliente_a_servidor);
         unlink(pipe_servidor_a_cliente);
@@ -87,34 +83,48 @@ void unfollow(){
 }
 
 void enviarTweet(){
+
     int confirmacionSenal;
     mensajeDelCliente mensaje_a_enviar;
-    char tweet[200];
+    char tweet[201];
     int creado = 0;
+    int c;
+    int contador = 0;
+    /*char* p;*/
 
     printf("Digite el tweet:\n");
-    scanf(" %[^\n]", tweet);
+    /*scanf(" %[^\n]", tweet);*/
+    scanf(" %20[^\n]s", tweet);
+    strcat(tweet, "\0");
 
-    mensaje_a_enviar.pid = getpid();
-    mensaje_a_enviar.desconexion = 0;
-    mensaje_a_enviar.numeroCliente = idCliente;
-    strcpy(mensaje_a_enviar.mensaje , tweet);
+    while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
+        contador = contador+1; //sumar cada caracter que sobró y quedó en stdin
+    }
 
-    do {
-       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
-       if (id_pipe_cliente_a_servidor == -1) {
-           perror("pipe");
-           printf(" Se volvera a intentar despues\n");
-           sleep(10);
-       } else creado = 1;
-    } while (creado == 0);
+    if(contador > 0){
+        printf("Error: el tweet supera los 200 caracteres\n");
+    }else{
+        mensaje_a_enviar.pid = getpid();
+        mensaje_a_enviar.operacion = 3;
+        mensaje_a_enviar.numeroCliente = idCliente;
+        strcpy(mensaje_a_enviar.mensaje , tweet);
 
-    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+        do {
+           id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
+           if (id_pipe_cliente_a_servidor == -1) {
+               perror("pipe");
+               printf(" Se volvera a intentar despues\n");
+               sleep(10);
+           } else creado = 1;
+        } while (creado == 0);
 
-    printf("Tweet enviado al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-    if(confirmacionSenal == -1){
-        perror("No se pudo enviar señal");
+        write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+
+        printf("Tweet enviado al servidor\n");
+        confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+        if(confirmacionSenal == -1){
+            perror("No se pudo enviar señal");
+        }
     }
 }
 
@@ -125,7 +135,7 @@ void desconectar(){
     mensajeDelCliente mensaje_a_enviar;
 
     mensaje_a_enviar.pid = getpid();
-    mensaje_a_enviar.desconexion = 1;
+    mensaje_a_enviar.operacion = 4;
     mensaje_a_enviar.numeroCliente = idCliente;
 
     do {
@@ -223,10 +233,8 @@ int main (int argc, char **argv){
         } else creado = 1;
      } while (creado == 0);
 
-    /* se envia el nombre del pipe al otro proceso. */
+    /* se envia la información del cliente al servidor */
     write(id_pipe_inicial, &datosProcesoCliente , sizeof(comunicacionInicialCliente));
-
-    /*pause();*/
 
     do{
         if ( clienteAceptado == true ){
@@ -247,15 +255,12 @@ int main (int argc, char **argv){
 
                 switch (opcion){
                     case 1:
-                        printf("Ejecutar follow");
                         follow();
                         break;
                     case 2:
-                        printf("Ejecutar unfollow");
                         unfollow();
                         break;
                     case 3:
-                        printf("Ejecutar tweet");
                         enviarTweet();
                         break;
                 }
