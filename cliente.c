@@ -344,8 +344,6 @@ int main (int argc, char **argv){
         } else creado = 1;
      } while (creado == 0);
 
-
-
      /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
      do {
         id_pipe_inicial = open(pipeInicial, O_WRONLY|O_NONBLOCK);

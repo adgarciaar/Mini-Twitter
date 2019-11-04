@@ -63,7 +63,7 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
 
-    imprimirInformacionEstructuraUsuarios();
+    /*imprimirInformacionEstructuraUsuarios();*/
 
 }
 
@@ -128,6 +128,43 @@ void desconectar(int i){
     clientesEstados[i].pid = -1;
     strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
     strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
+}
+
+void guardarTweet(mensajeDelCliente mensajeRecibido){
+
+    char** arreglo_tweets_aux;
+    int idTweetero, posicion_guardado;
+    char* tweet_aux;
+
+    idTweetero = mensajeRecibido.numeroCliente-1; /*para manejar los índices correctamente*/
+
+    if( arreglo_usuarios[idTweetero].numero_tweets == 0 ){
+        arreglo_usuarios[idTweetero].tweets = (char**)malloc(1*sizeof(char*));
+            if(arreglo_usuarios[idTweetero].tweets == NULL){
+                perror("Memoria no alocada");
+                exit(1);
+            }
+    }else{
+        arreglo_tweets_aux = realloc(arreglo_usuarios[idTweetero].tweets,
+              (arreglo_usuarios[idTweetero].numero_tweets+1) * sizeof(char*));
+        if(arreglo_tweets_aux == NULL){
+            perror("Memoria no alocada");
+            exit(1);
+        }
+        arreglo_usuarios[idTweetero].tweets = arreglo_tweets_aux;
+        arreglo_tweets_aux = NULL;
+    }
+    posicion_guardado = arreglo_usuarios[idTweetero].numero_tweets;
+    strcpy(tweet_aux, mensajeRecibido.mensaje);
+
+    arreglo_usuarios[idTweetero].tweets[ posicion_guardado ] = tweet_aux;
+    arreglo_usuarios[idTweetero].numero_tweets = arreglo_usuarios[idTweetero].numero_tweets+1;
+
+    tweet_aux = NULL;
+
+    /*printf("Se guardó tweet: %s\n", arreglo_usuarios[idTweetero].tweets[ posicion_guardado ]);
+    printf("En el usuario: %d y posicion %d\n", idTweetero, posicion_guardado);*/
+    printf("Tweet del usuario %d guardado\n", idTweetero+1);
 }
 
 void enviarTweet(mensajeDelCliente mensajeRecibido){
@@ -218,6 +255,7 @@ sighandler_t signalHandler (void){
                     case 3:
                         printf("Cliente envió un tweet\n");
                         printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
+                        guardarTweet(mensajeRecibido);
                         enviarTweet(mensajeRecibido);
                         break;
                     case 4: // se va a desconectar

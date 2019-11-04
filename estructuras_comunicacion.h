@@ -1,5 +1,7 @@
 #include <stdbool.h>
 
+#define TAMANO_TWEET
+
 typedef struct data {
     int pid;
     int numeroCliente;
