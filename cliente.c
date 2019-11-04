@@ -157,7 +157,7 @@ int main (int argc, char **argv){
     char cOpcion;
     int contador;
 
-    char pipeInicial[30];
+    char* pipeInicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
 
@@ -182,11 +182,13 @@ int main (int argc, char **argv){
 
     if( strcmp(argv[1],"-i") == 0 && strcmp(argv[3],"-p") ==0 ){
         idCliente = atoi(argv[2]);
-        strcpy(pipeInicial, argv[4]);
+        pipeInicial = argv[4];
     }else{
         idCliente = atoi(argv[4]);
-        strcpy(pipeInicial, argv[2]);
+        pipeInicial = argv[2];
     }
+
+    /*printf("Pipe inicial: %s\n", pipeInicial);*/
 
     pid = getpid();
     char stringPidProceso[10];
@@ -229,12 +231,15 @@ int main (int argc, char **argv){
         } else creado = 1;
      } while (creado == 0);
 
+
+
      /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
      do {
         id_pipe_inicial = open(pipeInicial, O_WRONLY|O_NONBLOCK);
         if (id_pipe_inicial == -1) {
             perror("pipe");
             printf(" Se volvera a intentar despues\n");
+            printf("ACA ESTOY\n");
    	       sleep(10);
         } else creado = 1;
      } while (creado == 0);
@@ -264,7 +269,7 @@ int main (int argc, char **argv){
 		            status = scanf("%c", &cOpcion);
                 while ((c = fgetc(stdin)) != '\n' && c != EOF){
                     contador = contador + 1;
-                };
+                }
             }
 
             /*opcion = (int)cOpcion;*/

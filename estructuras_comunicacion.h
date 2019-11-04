@@ -19,6 +19,7 @@ typedef struct {
     int operacion; //1 para follow, 2 unfollow, 3 tweet, 4 desconexion
     int numeroCliente;
     char mensaje[201];
+    int numero_cliente_follow_unfollow;
 } mensajeDelCliente;
 
 typedef struct {

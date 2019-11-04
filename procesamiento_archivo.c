@@ -75,8 +75,13 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
         arreglo_usuarios[i].id = i;
         arreglo_usuarios[i].numero_siguiendo = 0;
         /*printf("%d\n", arreglo_usuarios[i].numero_siguiendo);*/
-        arreglo_usuarios[i].lista_siguiendo = NULL;
+        arreglo_usuarios[i].lista_siguiendo = (int*)malloc(numero_lineas_archivo*sizeof(int));
+        if(arreglo_usuarios[i].lista_siguiendo == NULL){
+            perror("Memoria no alocada");
+            exit(1);
+        }
         arreglo_usuarios[i].tweets = NULL;
+        arreglo_usuarios[i].numero_tweets = 0;
     }
 
     archivo = fopen( nombre_archivo ,"r");
@@ -86,22 +91,12 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
       /* Get the first line of the file. */
       line_size = getline(&linea, &line_buf_size, archivo);
       while (line_size >= 0){
-      //while (fgets(linea,sizeof(linea),archivo) != NULL) {
-
-        /*printf("Numero de linea %d\n", numero_linea);*/
-        /*printf("%s\n", linea);*/
-
-        //arreglo_usuarios[numero_linea].numero_siguiendo = 0;
-          //printf("%d\n", arreglo_usuarios[numero_linea].numero_siguiendo);
 
           strcpy(linea_aux, linea);
-
-          //printf("%s\n", linea_aux);
 
           for(i = 0; i <= strlen(linea_aux); i++){
               if(linea_aux[i] == delimitador2){
                   linea_aux[i] = ' ';
-                  //printf("%s\n", "entre en la cambio\n");
               }
           }
 
@@ -115,38 +110,11 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
           token = strtok(linea_aux, delimitador);
           while (token != NULL) {
 
-              //printf("%s\n", token);
-
               if(atoi(token)==1){
-
-                //printf("%s\n", linea);
-
-                  if( arreglo_usuarios[numero_linea].numero_siguiendo == 0 ){
-                      arreglo_usuarios[numero_linea].lista_siguiendo = (int*)malloc(1*sizeof(usuario));
-                      if(arreglo_usuarios[numero_linea].lista_siguiendo == NULL){
-                          perror("Memoria no alocada");
-                          exit(1);
-                      }
-                      //printf("%s\n", "Es nuevo");
-                  }else{
-                      /*printf("%s\n", "Es extension");
-                      printf("%d\n", arreglo_usuarios[numero_linea].numero_siguiendo);
-                      printf("%s\n", token);*/
-                      arreglo_auxiliar = realloc(arreglo_usuarios[numero_linea].lista_siguiendo,
-                        (arreglo_usuarios[numero_linea].numero_siguiendo+1) * sizeof(int));
-                      //printf("%s\n", "El error es aca");
-                      if(arreglo_auxiliar == NULL){
-                          perror("Memoria no alocada");
-                          exit(1);
-                      }
-
-                      arreglo_usuarios[numero_linea].lista_siguiendo = arreglo_auxiliar;
-                      arreglo_auxiliar = NULL;
-
-                  }
-                  posicion = arreglo_usuarios[numero_linea].numero_siguiendo;
-                  arreglo_usuarios[numero_linea].lista_siguiendo[posicion] = contador_horizontal;
+                  arreglo_usuarios[numero_linea].lista_siguiendo[contador_horizontal] = 1;
                   arreglo_usuarios[numero_linea].numero_siguiendo = arreglo_usuarios[numero_linea].numero_siguiendo+1;
+              }else{
+                  arreglo_usuarios[numero_linea].lista_siguiendo[contador_horizontal] = 0;
               }
               contador_horizontal = contador_horizontal + 1;
               token = strtok(NULL, delimitador);

@@ -6,12 +6,92 @@ Nota:
 
 #include "gestor.h"
 
+void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir){
+
+    int* arreglo_auxiliar = NULL;
+
+    numero_usuario_seguidor = numero_usuario_seguidor-1; //para manejar correctamente índice
+    numero_usuario_a_seguir = numero_usuario_a_seguir-1; //para manejar correctamente índice
+
+    if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 0 ){
+        arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 1;
+        arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo+1;
+    }else{ /*ya está siguiendo a ese usuario*/
+
+    }
+
+}
+
+void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
+
+    int i;
+    numero_usuario_seguidor = numero_usuario_seguidor-1; //para manejar correctamente índice
+    numero_usuario_seguido = numero_usuario_seguido-1; //para manejar correctamente índice
+
+    if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 1 ){
+        arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 0;
+        arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo-1;
+    }else{ /*no está siguiendo a ese usuario*/
+
+    }
+
+}
+
+void desconectar(int i){
+    printf("Cliente solicitó desconexión\n");
+    clientesEstados[i].activo = false;
+    clientesEstados[i].pid = -1;
+    strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
+    strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
+}
+
+void enviarTweet(mensajeDelCliente mensajeRecibido){
+
+  mensajeDelServidor mensajeParaCliente;
+  int id_pipe_servidor_a_cliente, confirmacionSenal, i, j, creado;
+  bool b;
+
+  mensajeParaCliente.pid = getpid();
+  mensajeParaCliente.numeroMensajes = 1;
+  strcpy(mensajeParaCliente.mensaje, mensajeRecibido.mensaje);
+  mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
+
+  for(i=0;i<numero_usuarios;i++){
+      if ( clientesEstados[i].activo == true && arreglo_usuarios[i].numero_siguiendo > 0 &&
+         arreglo_usuarios[i].lista_siguiendo[mensajeParaCliente.idTweetero-1] == 1 ){
+            /*si está siguiendo a quien envió el tweet*/
+              creado = 0;
+              do {
+                 id_pipe_servidor_a_cliente = open(clientesEstados[i].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
+                 if (id_pipe_servidor_a_cliente == -1) {
+                    perror("Server abriendo el pipe especifico\n");
+                    printf("Se volvera a intentar despues\n");
+                    sleep(5);
+                 } else creado = 1;
+              }  while (creado == 0);
+
+              write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+
+              confirmacionSenal = kill (clientesEstados[i].pid, SIGUSR1); /*enviar la señal*/
+              if(confirmacionSenal == -1){
+                  perror("No se pudo enviar señal");
+              }
+              printf("Enviado tweet a cliente con id %d y pid %d\n", i+1, clientesEstados[i].pid);
+
+      }
+  }
+
+
+}
+
 sighandler_t signalHandler (void){
 
     int i, j, id_pipe_cliente_a_servidor, id_pipe_servidor_a_cliente, creado = 0;
     int numero_bytes;
     mensajeDelCliente mensajeRecibido;
     int confirmacionSenal;
+
+    int numero_usuario_seguidor, numero_usuario_a_seguir, numero_usuario_seguido;
 
     printf("\n\nRecibiendo un paquete de un cliente\n");
 
@@ -41,54 +121,23 @@ sighandler_t signalHandler (void){
                 switch (mensajeRecibido.operacion){
                     case 1:
                         printf("Cliente solicitó ejecutar follow\n");
-
+                        numero_usuario_seguidor = mensajeRecibido.numeroCliente;
+                        numero_usuario_a_seguir = mensajeRecibido.numero_cliente_follow_unfollow;
+                        adicionarSeguidor(numero_usuario_seguidor, numero_usuario_a_seguir);
                         break;
                     case 2:
                         printf("Cliente solicitó ejecutar unfollow\n");
-
+                        numero_usuario_seguidor = mensajeRecibido.numeroCliente;
+                        numero_usuario_seguido = mensajeRecibido.numero_cliente_follow_unfollow;
+                        removerSeguidor(numero_usuario_seguidor, numero_usuario_seguido);
                         break;
                     case 3:
                         printf("Cliente envió un tweet\n");
                         printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
-
-                        mensajeDelServidor mensajeParaCliente;
-
-                        mensajeParaCliente.pid = getpid();
-                        mensajeParaCliente.numeroMensajes = 1;
-                        strcpy(mensajeParaCliente.mensaje, mensajeRecibido.mensaje);
-                        mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
-
-                        //enviar tweet a los seguidores de dicho cliente*/
-                        for(j=0;j<numero_usuarios;j++){
-                            if ( clientesEstados[j].activo == true && i!=j ){
-
-                                creado = 0;
-                                do {
-                                   id_pipe_servidor_a_cliente = open(clientesEstados[j].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
-                                   if (id_pipe_servidor_a_cliente == -1) {
-                                      perror("Server abriendo el pipe especifico\n");
-                                      printf("Se volvera a intentar despues\n");
-                                      sleep(5);
-                                   } else creado = 1;
-                                }  while (creado == 0);
-
-                                write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
-
-                                confirmacionSenal = kill (clientesEstados[j].pid, SIGUSR1); /*enviar la señal*/
-                                if(confirmacionSenal == -1){
-                                    perror("No se pudo enviar señal");
-                                }
-                                printf("Enviado tweet a cliente con id %d y pid %d\n", j+1, clientesEstados[j].pid);
-                            }
-                        }
-
+                        enviarTweet(mensajeRecibido);
                         break;
                     case 4: // se va a desconectar
-                        printf("Cliente solicitó desconexión\n");
-                        clientesEstados[i].activo = false;
-                        clientesEstados[i].pid = -1;
-                        strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
-                        strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
+                        desconectar(i);
                         printf("Se desconecta el cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
                             mensajeRecibido.pid);
                         break;
@@ -171,7 +220,7 @@ int main (int argc, char **argv){
     int id_pipe_inicial, pid, n, cuantos,res,creado=0, i, j;
     comunicacionInicialCliente datosProcesoCliente;
     char nombre_archivo[30];
-    char pipeInicial[30];
+    char* pipeInicial;
     int numero_lineas_archivo = 0;
     int numero_siguiendo = 0;
     int numeroClienteConectado;
@@ -197,16 +246,23 @@ int main (int argc, char **argv){
 
     if( strcmp(argv[1],"-r") == 0 && strcmp(argv[3],"-p") ==0 ){
         strcpy(nombre_archivo, argv[2]);
-        strcpy(pipeInicial, argv[4]);
+        pipeInicial = argv[4];
     }else{
         strcpy(nombre_archivo, argv[4]);
-        strcpy(pipeInicial, argv[2]);
+        pipeInicial = argv[2];
     }
 
     printf("Nombre archivo: %s\n", nombre_archivo);
     printf("Nombre pipe: %s\n", pipeInicial);
 
     signal (SIGUSR1, (sighandler_t)signalHandler); /* Instalar manejador de la señal */
+
+    /* Creacion del pipe inicial, el que se recibe como argumento del main */
+    unlink(pipeInicial);
+    if (mkfifo (pipeInicial, fifo_mode) == -1) {
+       perror("Server mkfifo");
+       exit(1);
+    }
 
     /*leer el archivo e imprimir la información almacenada en este*/
     if( AbrirArchivo(nombre_archivo) == false ){
@@ -228,21 +284,16 @@ int main (int argc, char **argv){
         printf("Siguiendo a %d usuarios",arreglo_usuarios[i].numero_siguiendo);
         if(arreglo_usuarios[i].numero_siguiendo != 0){
             printf("\nSiguiendo a:  ");
-            for(j=0;j<arreglo_usuarios[i].numero_siguiendo;j++){
-                printf("%d ", arreglo_usuarios[i].lista_siguiendo[j]+1);
+            for(j=0;j<numero_usuarios;j++){
+                if( arreglo_usuarios[i].lista_siguiendo[j] == 1 ){
+                    printf("%d ",j+1);
+                }
             }
         }
 
     }/*end for*/
 
     printf("\n\nFin de la información obtenida a partir del archivo %s\n\n", nombre_archivo);
-
-    /* Creacion del pipe inicial, el que se recibe como argumento del main */
-    unlink(argv[1]);
-    if (mkfifo (argv[1], fifo_mode) == -1) {
-       perror("Server mkfifo");
-       exit(1);
-    }
 
     /*inicializar el arreglo para guardar la información de los clientes conectados*/
     clientesEstados = (estadosClientes*)malloc(numero_usuarios*sizeof(estadosClientes));
@@ -263,7 +314,7 @@ int main (int argc, char **argv){
 
         creado = 0;
         do {
-           id_pipe_inicial = open (argv[1], O_RDONLY);
+           id_pipe_inicial = open (pipeInicial, O_RDONLY);
            if (id_pipe_inicial == -1) {
                perror("Pipe: ");
                printf(" Se volvera a intentar despues\n");

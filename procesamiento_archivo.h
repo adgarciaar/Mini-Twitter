@@ -19,6 +19,7 @@ typedef struct {
     int numero_siguiendo;
     int* lista_siguiendo;
     char** tweets;
+    int numero_tweets;
 } usuario ;
 
 bool AbrirArchivo(char nombre_archivo[]);
