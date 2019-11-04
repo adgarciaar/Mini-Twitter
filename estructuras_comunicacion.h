@@ -9,6 +9,7 @@ typedef struct data {
 
 typedef struct {
     int pid;
+    int operacion; //1 para follow, 2 unfollow, 3 tweet, 4 desconexion
     int idTweetero;
     int numeroMensajes;
     char mensaje[201];

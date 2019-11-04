@@ -42,8 +42,18 @@ sighandler_t signalHandler (void){
         printf("El id del cliente es válido");
     }
     if(mensajeRecibido.numeroMensajes == 1){
-        printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
-        printf("Tweet: %s\n", mensajeRecibido.mensaje);
+        switch (mensajeRecibido.operacion) {
+          case 1: /*follow*/
+              printf("Respuesta de operación follow:\n %s", mensajeRecibido.mensaje);
+              break;
+          case 2: /*unfollow*/
+              printf("Respuesta de operación unfollow:\n %s", mensajeRecibido.mensaje);
+              break;
+          case 3: /*tweet*/
+              printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
+              printf("Tweet: %s\n", mensajeRecibido.mensaje);
+              break;
+        }
     }
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
     if(mensajeRecibido.numeroMensajes < 0){
@@ -58,6 +68,58 @@ sighandler_t signalHandler (void){
 }
 
 void follow(){
+
+    int confirmacionSenal;
+    mensajeDelCliente mensaje_a_enviar;
+    int creado = 0, status, c, contador=0;
+    int usuario_a_seguir;
+
+    printf("Por favor ingrese el número del usuario a seguir: ");
+
+    status = scanf("%d", &usuario_a_seguir);
+    while ((c = fgetc(stdin)) != '\n' && c != EOF){
+        contador = contador + 1;
+    }; /* Flush stdin */
+
+    while(contador>0 || status!=1 || usuario_a_seguir <= 0 || usuario_a_seguir == idCliente){
+        contador = 0;
+        if( usuario_a_seguir <= 0 ){
+            printf("Error: el número debe ser mayor a cero\n");
+        }
+        if( usuario_a_seguir == idCliente ){
+            printf("Error: no te puedes seguir a ti mismo\n");
+        }
+        if (contador>0 || status!=1){
+          printf("Error: por favor ingrese un número\n");
+        }
+        printf("Por favor ingrese el número del usuario a seguir: ");
+        status = scanf("%d", &usuario_a_seguir);
+        while ((c = fgetc(stdin)) != '\n' && c != EOF){
+            contador = contador + 1;
+        }
+    }
+
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.operacion = 1;
+    mensaje_a_enviar.numeroCliente = idCliente;
+    mensaje_a_enviar.numero_cliente_follow_unfollow = usuario_a_seguir;
+
+    do {
+       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_cliente_a_servidor == -1) {
+           perror("pipe");
+           printf(" Se volvera a intentar despues\n");
+           sleep(10);
+       } else creado = 1;
+    } while (creado == 0);
+
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+
+    printf("Solicitud de follow enviada al servidor\n");
+    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
 
 }
 
@@ -155,8 +217,8 @@ int main (int argc, char **argv){
     int numero_bytes;
     int status, c;
     char cOpcion;
-    int contador;
-
+    int contador=0;
+    char stringPidProceso[10];
     char* pipeInicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
@@ -191,7 +253,7 @@ int main (int argc, char **argv){
     /*printf("Pipe inicial: %s\n", pipeInicial);*/
 
     pid = getpid();
-    char stringPidProceso[10];
+
     sprintf(stringPidProceso, "%d", pid);
 
     strcat(pipe_cliente_a_servidor, stringPidProceso);

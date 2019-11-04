@@ -8,32 +8,114 @@ Nota:
 
 void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir){
 
-    int* arreglo_auxiliar = NULL;
+    int creado=0;
+    int id_pipe_servidor_a_cliente, confirmacionSenal;
+    mensajeDelServidor mensajeParaCliente;
+    char string_usuario_a_seguir[10];
 
     numero_usuario_seguidor = numero_usuario_seguidor-1; //para manejar correctamente índice
     numero_usuario_a_seguir = numero_usuario_a_seguir-1; //para manejar correctamente índice
 
-    if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 0 ){
-        arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 1;
-        arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo+1;
-    }else{ /*ya está siguiendo a ese usuario*/
+    mensajeParaCliente.pid = getpid();
+    mensajeParaCliente.numeroMensajes = 1;
+    mensajeParaCliente.operacion = 1;
+    sprintf(string_usuario_a_seguir, "%d", numero_usuario_a_seguir+1);
 
+    if(numero_usuario_a_seguir > numero_usuarios-1){ /*el usuario es mayor al número de usuarios del archivo, error*/
+        strcpy(mensajeParaCliente.mensaje, "Operación follow fallida: el usuario a seguir no existe");
+        printf("Operación follow fallida: el usuario a seguir no existe\n");
+    }else{
+        if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 0 ){
+
+            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 1;
+            arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo+1;
+            strcpy(mensajeParaCliente.mensaje, "Operación follow exitosa: ahora sigues a usuario ");
+            strcat(mensajeParaCliente.mensaje, string_usuario_a_seguir);
+            strcat(mensajeParaCliente.mensaje, "\n");
+            printf("Operación follow exitosa: usuario %d sigue ahora a usuario %d\n", numero_usuario_seguidor, numero_usuario_a_seguir);
+
+        }else{ /*ya está siguiendo a ese usuario, enviar error*/
+
+            strcpy(mensajeParaCliente.mensaje, "Operación follow fallida: ya sigues a usuario ");
+            strcat(mensajeParaCliente.mensaje, string_usuario_a_seguir);
+            strcat(mensajeParaCliente.mensaje, "\n");
+            printf("Operación follow fallida: usuario %d ya sigue a usuario %d\n", numero_usuario_seguidor, numero_usuario_a_seguir);
+        }
+        /*printf("entro ahis %s\n", mensajeParaCliente.mensaje);*/
     }
+
+    do {
+       id_pipe_servidor_a_cliente = open(clientesEstados[numero_usuario_seguidor].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_servidor_a_cliente == -1) {
+          perror("Server abriendo el pipe especifico\n");
+          printf("Se volvera a intentar despues\n");
+          sleep(5);
+       } else creado = 1;
+    }  while (creado == 0);
+
+    write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+
+    confirmacionSenal = kill (clientesEstados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
+    printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
+        numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
 
 }
 
 void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
 
-    int i;
+    int creado=0;
+    int id_pipe_servidor_a_cliente, confirmacionSenal;
+    mensajeDelServidor mensajeParaCliente;
+    char string_usuario_seguido[10];
+
+    mensajeParaCliente.pid = getpid();
+    mensajeParaCliente.numeroMensajes = 1;
+    mensajeParaCliente.operacion = 2;
+    sprintf(string_usuario_seguido, "%d", numero_usuario_seguido+1);
+
     numero_usuario_seguidor = numero_usuario_seguidor-1; //para manejar correctamente índice
     numero_usuario_seguido = numero_usuario_seguido-1; //para manejar correctamente índice
 
-    if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 1 ){
-        arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 0;
-        arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo-1;
-    }else{ /*no está siguiendo a ese usuario*/
+    if(numero_usuario_seguido > numero_usuarios-1){ /*el usuario es mayor al número de usuarios del archivo, error*/
+        strcpy(mensajeParaCliente.mensaje, "Operación unfollow fallida: el usuario a dejar de seguir no existe");
+        printf("Operación unfollow fallida: el usuario a dejar de seguir no existe\n");
+    }else{
+        if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 1 ){
 
+            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 0;
+            arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo-1;
+            strcpy(mensajeParaCliente.mensaje, "Operación unfollow exitosa: ya no sigues a usuario ");
+            strcat(mensajeParaCliente.mensaje, string_usuario_seguido);
+            strcat(mensajeParaCliente.mensaje, "\n");
+            printf("Operación unfollow exitosa: usuario %d ya no sigue a usuario %d\n", numero_usuario_seguidor, numero_usuario_seguido);
+
+        }else{ /*no está siguiendo a ese usuario, enviar error*/
+            strcpy(mensajeParaCliente.mensaje, "Operación unfollow fallida: no sigues a usuario ");
+            strcat(mensajeParaCliente.mensaje, string_usuario_seguido);
+            strcat(mensajeParaCliente.mensaje, "\n");
+            printf("Operación unfollow fallida: usuario %d no sigue a usuario %d\n", numero_usuario_seguidor, numero_usuario_seguido);
+        }
     }
+
+    do {
+       id_pipe_servidor_a_cliente = open(clientesEstados[numero_usuario_seguidor].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_servidor_a_cliente == -1) {
+          perror("Server abriendo el pipe especifico\n");
+          printf("Se volvera a intentar despues\n");
+          sleep(5);
+       } else creado = 1;
+    }  while (creado == 0);
+    write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+
+    confirmacionSenal = kill (clientesEstados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
+    printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
+        numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
 
 }
 
@@ -53,6 +135,7 @@ void enviarTweet(mensajeDelCliente mensajeRecibido){
 
   mensajeParaCliente.pid = getpid();
   mensajeParaCliente.numeroMensajes = 1;
+  mensajeParaCliente.operacion = 3;
   strcpy(mensajeParaCliente.mensaje, mensajeRecibido.mensaje);
   mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
 
@@ -252,8 +335,8 @@ int main (int argc, char **argv){
         pipeInicial = argv[2];
     }
 
-    printf("Nombre archivo: %s\n", nombre_archivo);
-    printf("Nombre pipe: %s\n", pipeInicial);
+    /*printf("Nombre archivo: %s\n", nombre_archivo);
+    printf("Nombre pipe: %s\n", pipeInicial);*/
 
     signal (SIGUSR1, (sighandler_t)signalHandler); /* Instalar manejador de la señal */
 
