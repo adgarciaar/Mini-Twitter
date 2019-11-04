@@ -4,24 +4,7 @@ Funcion:
 Nota:
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <string.h>
-#include <unistd.h>
-#include "estructuras_comunicacion.h"
-#include "procesamiento_archivo.h"
-
-#define TAMNOM 200
-
-int numero_usuarios;
-estadosClientes* clientesEstados;
-usuario* arreglo_usuarios;
-
-typedef void (*sighandler_t)(int);
+#include "gestor.h"
 
 sighandler_t signalHandler (void){
 
