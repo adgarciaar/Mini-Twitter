@@ -26,20 +26,21 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
         printf("Operación follow fallida: el usuario a seguir no existe\n");
     }else{
         if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 0 ){
-
-            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] == 1;
+            /*printf("Antes: %d\n", arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir]);*/
+            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir] = 1;
             arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo+1;
+            /*printf("despues: %d\n", arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_a_seguir]);*/
             strcpy(mensajeParaCliente.mensaje, "Operación follow exitosa: ahora sigues a usuario ");
             strcat(mensajeParaCliente.mensaje, string_usuario_a_seguir);
             strcat(mensajeParaCliente.mensaje, "\n");
-            printf("Operación follow exitosa: usuario %d sigue ahora a usuario %d\n", numero_usuario_seguidor, numero_usuario_a_seguir);
+            printf("Operación follow exitosa: usuario %d sigue ahora a usuario %d\n", numero_usuario_seguidor+1, numero_usuario_a_seguir+1);
 
         }else{ /*ya está siguiendo a ese usuario, enviar error*/
 
             strcpy(mensajeParaCliente.mensaje, "Operación follow fallida: ya sigues a usuario ");
             strcat(mensajeParaCliente.mensaje, string_usuario_a_seguir);
             strcat(mensajeParaCliente.mensaje, "\n");
-            printf("Operación follow fallida: usuario %d ya sigue a usuario %d\n", numero_usuario_seguidor, numero_usuario_a_seguir);
+            printf("Operación follow fallida: usuario %d ya sigue a usuario %d\n", numero_usuario_seguidor+1, numero_usuario_a_seguir+1);
         }
         /*printf("entro ahis %s\n", mensajeParaCliente.mensaje);*/
     }
@@ -61,6 +62,8 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
     }
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
+
+    imprimirInformacionEstructuraUsuarios();
 
 }
 
@@ -85,7 +88,7 @@ void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
     }else{
         if( arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 1 ){
 
-            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] == 0;
+            arreglo_usuarios[numero_usuario_seguidor].lista_siguiendo[numero_usuario_seguido] = 0;
             arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo = arreglo_usuarios[numero_usuario_seguidor].numero_siguiendo-1;
             strcpy(mensajeParaCliente.mensaje, "Operación unfollow exitosa: ya no sigues a usuario ");
             strcat(mensajeParaCliente.mensaje, string_usuario_seguido);
@@ -141,7 +144,7 @@ void enviarTweet(mensajeDelCliente mensajeRecibido){
 
   for(i=0;i<numero_usuarios;i++){
       if ( clientesEstados[i].activo == true && arreglo_usuarios[i].numero_siguiendo > 0 &&
-         arreglo_usuarios[i].lista_siguiendo[mensajeParaCliente.idTweetero-1] == 1 ){
+         arreglo_usuarios[i].lista_siguiendo[mensajeRecibido.numeroCliente-1] == 1 ){
             /*si está siguiendo a quien envió el tweet*/
               creado = 0;
               do {
@@ -160,10 +163,8 @@ void enviarTweet(mensajeDelCliente mensajeRecibido){
                   perror("No se pudo enviar señal");
               }
               printf("Enviado tweet a cliente con id %d y pid %d\n", i+1, clientesEstados[i].pid);
-
       }
   }
-
 
 }
 
@@ -298,6 +299,26 @@ void imprimirInstruccionesComando(){
     printf("y las banderas -r y -p son obligatorias\n\n");
 }
 
+void imprimirInformacionEstructuraUsuarios(){
+
+    int i,j;
+
+    for(i=0;i<numero_usuarios;i++){
+
+        printf("\n\nUsuario %d\n", i+1);
+        printf("Siguiendo a %d usuarios",arreglo_usuarios[i].numero_siguiendo);
+        if(arreglo_usuarios[i].numero_siguiendo != 0){
+            printf("\nSiguiendo a:  ");
+            for(j=0;j<numero_usuarios;j++){
+                if( arreglo_usuarios[i].lista_siguiendo[j] == 1 ){
+                    printf("%d ",j+1);
+                }
+            }
+        }
+
+    }/*end for*/
+}
+
 int main (int argc, char **argv){
 
     int id_pipe_inicial, pid, n, cuantos,res,creado=0, i, j;
@@ -361,20 +382,7 @@ int main (int argc, char **argv){
     printf("\n\nInformación obtenida a partir del archivo %s", nombre_archivo);
 
     /*imprimir la información obtenida a partir del archivo*/
-    for(i=0;i<numero_usuarios;i++){
-
-        printf("\n\nUsuario %d\n", i+1);
-        printf("Siguiendo a %d usuarios",arreglo_usuarios[i].numero_siguiendo);
-        if(arreglo_usuarios[i].numero_siguiendo != 0){
-            printf("\nSiguiendo a:  ");
-            for(j=0;j<numero_usuarios;j++){
-                if( arreglo_usuarios[i].lista_siguiendo[j] == 1 ){
-                    printf("%d ",j+1);
-                }
-            }
-        }
-
-    }/*end for*/
+    imprimirInformacionEstructuraUsuarios();
 
     printf("\n\nFin de la información obtenida a partir del archivo %s\n\n", nombre_archivo);
 

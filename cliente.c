@@ -125,6 +125,57 @@ void follow(){
 
 void unfollow(){
 
+    int confirmacionSenal;
+    mensajeDelCliente mensaje_a_enviar;
+    int creado = 0, status, c, contador=0;
+    int usuario_a_dejar_de_seguir;
+
+    printf("Por favor ingrese el número del usuario a dejar de seguir: ");
+
+    status = scanf("%d", &usuario_a_dejar_de_seguir);
+    while ((c = fgetc(stdin)) != '\n' && c != EOF){
+        contador = contador + 1;
+    }; /* Flush stdin */
+
+    while(contador>0 || status!=1 || usuario_a_dejar_de_seguir <= 0 || usuario_a_dejar_de_seguir == idCliente){
+        contador = 0;
+        if( usuario_a_dejar_de_seguir <= 0 ){
+            printf("Error: el número debe ser mayor a cero\n");
+        }
+        if( usuario_a_dejar_de_seguir == idCliente ){
+            printf("Error: no te puedes dejar de seguir a ti mismo (porque no te puedes seguir a ti mismo)\n");
+        }
+        if (contador>0 || status!=1){
+          printf("Error: por favor ingrese un número\n");
+        }
+        printf("Por favor ingrese el número del usuario a dejar de seguir: ");
+        status = scanf("%d", &usuario_a_dejar_de_seguir);
+        while ((c = fgetc(stdin)) != '\n' && c != EOF){
+            contador = contador + 1;
+        }
+    }
+
+    mensaje_a_enviar.pid = getpid();
+    mensaje_a_enviar.operacion = 2;
+    mensaje_a_enviar.numeroCliente = idCliente;
+    mensaje_a_enviar.numero_cliente_follow_unfollow = usuario_a_dejar_de_seguir;
+
+    do {
+       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
+       if (id_pipe_cliente_a_servidor == -1) {
+           perror("pipe");
+           printf(" Se volvera a intentar despues\n");
+           sleep(10);
+       } else creado = 1;
+    } while (creado == 0);
+
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+
+    printf("Solicitud de unfollow enviada al servidor\n");
+    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacionSenal == -1){
+        perror("No se pudo enviar señal");
+    }
 }
 
 void enviarTweet(){
@@ -301,7 +352,6 @@ int main (int argc, char **argv){
         if (id_pipe_inicial == -1) {
             perror("pipe");
             printf(" Se volvera a intentar despues\n");
-            printf("ACA ESTOY\n");
    	       sleep(10);
         } else creado = 1;
      } while (creado == 0);
