@@ -6,7 +6,7 @@ Funciones:
 Fecha de última modificación:
 */
 
-#include "algo.h"
+#include "procesamiento_archivo.h"
 
 bool AbrirArchivo(char nombre_archivo[]){
     FILE *archivo;
@@ -46,8 +46,11 @@ int ContarLineasArchivo(char nombre_archivo[]){
 
 usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
 
+    /*printf("%d\n", numero_lineas_archivo);*/
+
     FILE *archivo;
-    char linea[TAMANO_MAXIMO_LINEA];
+    //char linea[TAMANO_MAXIMO_LINEA];
+    char *linea = NULL;
     char linea_aux[TAMANO_MAXIMO_LINEA];
     char delimitador[] = " ";
     int numero_linea = 0, contador = 0;
@@ -57,6 +60,11 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
     usuario* arreglo_usuarios = (usuario*)malloc(numero_lineas_archivo*sizeof(usuario));
     int* arreglo_auxiliar = NULL;
     int contador_horizontal = 0;
+    char delimitador2 = '\t';
+    int posicion;
+    ssize_t line_size;
+    char *line_buf = NULL;
+    size_t line_buf_size = 0;
 
     if (arreglo_usuarios == NULL) {
         perror("Memoria no alocada");
@@ -66,17 +74,31 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
     for(i=0;i<numero_lineas_archivo;i++){
         arreglo_usuarios[i].id = i;
         arreglo_usuarios[i].numero_siguiendo = 0;
-        arreglo_usuarios[i].lista_siguiendo = NULL;
+        /*printf("%d\n", arreglo_usuarios[i].numero_siguiendo);*/
+        arreglo_usuarios[i].lista_siguiendo = (int*)malloc(numero_lineas_archivo*sizeof(int));
+        if(arreglo_usuarios[i].lista_siguiendo == NULL){
+            perror("Memoria no alocada");
+            exit(1);
+        }
         arreglo_usuarios[i].tweets = NULL;
+        arreglo_usuarios[i].numero_tweets = 0;
     }
 
     archivo = fopen( nombre_archivo ,"r");
 
     if ( archivo != NULL ){
 
-      while (fgets(linea,sizeof(linea),archivo)) {
+      /* Get the first line of the file. */
+      line_size = getline(&linea, &line_buf_size, archivo);
+      while (line_size >= 0){
 
           strcpy(linea_aux, linea);
+
+          for(i = 0; i <= strlen(linea_aux); i++){
+              if(linea_aux[i] == delimitador2){
+                  linea_aux[i] = ' ';
+              }
+          }
 
           contador_horizontal = 0;
 
@@ -89,30 +111,17 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
           while (token != NULL) {
 
               if(atoi(token)==1){
-
-                  if( arreglo_usuarios[numero_linea].numero_siguiendo == 0 ){
-                      arreglo_usuarios[numero_linea].lista_siguiendo = (int*)malloc(1*sizeof(usuario));
-                      if(arreglo_usuarios[numero_linea].lista_siguiendo == NULL){
-                          perror("Memoria no alocada");
-                          exit(1);
-                      }
-                  }else{
-                      arreglo_auxiliar = realloc(arreglo_usuarios[numero_linea].lista_siguiendo,
-                        (arreglo_usuarios[numero_linea].numero_siguiendo+1) * sizeof(int));
-                      if(arreglo_auxiliar == NULL){
-                          perror("Memoria no alocada");
-                          exit(1);
-                      }
-                      arreglo_usuarios[numero_linea].lista_siguiendo = arreglo_auxiliar;
-                      arreglo_auxiliar = NULL;
-                  }
-                  arreglo_usuarios[numero_linea].lista_siguiendo[arreglo_usuarios[numero_linea].numero_siguiendo] = contador_horizontal;
+                  arreglo_usuarios[numero_linea].lista_siguiendo[contador_horizontal] = 1;
                   arreglo_usuarios[numero_linea].numero_siguiendo = arreglo_usuarios[numero_linea].numero_siguiendo+1;
+              }else{
+                  arreglo_usuarios[numero_linea].lista_siguiendo[contador_horizontal] = 0;
               }
               contador_horizontal = contador_horizontal + 1;
               token = strtok(NULL, delimitador);
           }
           numero_linea = numero_linea + 1;
+          /* Get the next line */
+          line_size = getline(&linea, &line_buf_size, archivo);
 
       }/*end while*/
       fclose(archivo);
@@ -127,28 +136,13 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
 
 }
 
-/* guardarTweet: recibe un tweet y lo guarda en la posicion recibida*/
-
-bool guardarTweet (char* tweet, int posUsuario, int posTweet, usuario *arreglo_usuarios) {
-
-bool guardado=false;
-
-arreglo_usuarios[posUsuario].tweets[posTweet]=tweet;
-
-guardado=true;
-
-return guardado;
-	
-
-}  
-
-int main (int argc, char **argv) {
-    /*usar realloc() para cambiar tamaño en ejecución */
+/*int main (int argc, char **argv) {
+    /*usar realloc() para cambiar tamaño en ejecución
     int i,j;
     int numero_lineas_archivo = 0, numero_usuarios;
     int numero_siguiendo = 0;
 
-    char nombre_archivo[] = "infoUsuarios";
+    char nombre_archivo[] = "matriz.txt";
 
     if( AbrirArchivo(nombre_archivo) == false ){
         exit(-1);
@@ -161,12 +155,12 @@ int main (int argc, char **argv) {
 
     for(i=0;i<numero_usuarios;i++){
 
-        printf("\n\n%s%d\n", "Usuario ",i);
+        printf("\n\n%s%d\n", "Usuario ",i+1);
         printf("%s%d\n", "Siguiendo a ",arreglo_usuarios[i].numero_siguiendo);
         printf("lista_siguiendo:");
 
         for(j=0;j<arreglo_usuarios[i].numero_siguiendo;j++){
-            printf("%d ", arreglo_usuarios[i].lista_siguiendo[j]);
+            printf("%d ", arreglo_usuarios[i].lista_siguiendo[j]+1);
         }
 
         if(arreglo_usuarios[i].lista_siguiendo != NULL){
@@ -177,8 +171,8 @@ int main (int argc, char **argv) {
         if(arreglo_usuarios[i].tweets != NULL){
             free(arreglo_usuarios[i].tweets);
             arreglo_usuarios[i].tweets = NULL;
-        }/*end if*/
-    }/*end for*/
+        }/*end if
+    }/*end for
 
     free(arreglo_usuarios);
     arreglo_usuarios = NULL;
@@ -186,4 +180,4 @@ int main (int argc, char **argv) {
     printf("\n");
 
     return(0);
-}
+}*/

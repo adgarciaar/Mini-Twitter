@@ -11,14 +11,15 @@ Fecha de última modificación:
 #include <stdlib.h>
 #include <string.h>
 
-#define TAMANO_MAXIMO_TWEET 200
+#define TAMANO_MAXIMO_TWEET 201
 #define TAMANO_MAXIMO_LINEA 21
 
 typedef struct {
-  int id;
-  int numero_siguiendo;
-  int* lista_siguiendo;
-  char** tweets;
+    int id;
+    int numero_siguiendo;
+    int* lista_siguiendo;
+    char** tweets;
+    int numero_tweets;
 } usuario ;
 
 bool AbrirArchivo(char nombre_archivo[]);

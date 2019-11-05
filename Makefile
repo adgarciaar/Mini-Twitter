@@ -1,9 +1,14 @@
-all: algo
+all: gestor cliente
 
-algo: algo.o
-		gcc -ansi -o algo algo.o
-algo.o: algo.c algo.h
-		gcc -c algo.c
+gestor: gestor.o procesamiento_archivo.o
+		gcc -ansi -o gestor gestor.o procesamiento_archivo.o
+gestor.o: gestor.c gestor.h estructuras_comunicacion.h procesamiento_archivo.c procesamiento_archivo.h
+		gcc -c gestor.c
+
+cliente: cliente.o
+		gcc -ansi -o cliente cliente.o
+cliente.o: cliente.c cliente.h estructuras_comunicacion.h
+		gcc -c cliente.c
 
 clean:
-		rm *.o algo
+		rm *.o gestor cliente
