@@ -1,9 +1,11 @@
 /*
-Nombre del archivo:
+Nombre del archivo: cliente.h
 Autores: Adrián García y Luis Rosales
-Objetivo:
-Funciones:
-Fecha de última modificación:
+Objetivo: proveer las librerías, los prototipos de las funciones y las variables
+  globales (requeridas por varias funciones) que usa cada proceso cliente.
+Funciones: signalHandler, follow, unfollow, enviarTweet, desconectar,
+  imprimirInstruccionesComando, main
+Fecha de última modificación: 04/11/19
 */
 
 #include <sys/types.h>
@@ -16,12 +18,10 @@ Fecha de última modificación:
 #include <unistd.h>
 #include "estructuras_comunicacion.h"
 
-#define TAMMENSAJE 200
-
 int id_pipe_cliente_a_servidor, id_pipe_servidor_a_cliente;
-char mensaje[TAMMENSAJE];
-char pipe_cliente_a_servidor[30] = "pipeCliente";
-char pipe_servidor_a_cliente[30] = "pipeCliente";
+char mensaje[TAMANO_TWEET];
+char pipe_cliente_a_servidor[TAMANO_NOMBRE_PIPE] = "pipeCliente";
+char pipe_servidor_a_cliente[TAMANO_NOMBRE_PIPE] = "pipeCliente";
 bool clienteAceptado;
 int pidServidor;
 int idCliente;

@@ -1,9 +1,14 @@
 /*
-Nombre del archivo:
+Nombre del archivo: gestor.h
 Autores: Adrián García y Luis Rosales
-Objetivo:
-Funciones:
-Fecha de última modificación:
+Objetivo: proveer las librerías, las constantes, los prototipos de las funciones
+  y las variables globales (requeridas por varias funciones) que usa el proceso
+  servidor.
+Funciones: adicionarSeguidor, removerSeguidor, desconectar, guardarTweet,
+  EnviarTweetsASeguidorRecienConectado, enviarTweetASeguidoresConectados,
+  signalHandler, manejarNuevaConexion, imprimirInstruccionesComando,
+  imprimirInformacionEstructuraUsuarios, main
+Fecha de última modificación: 04/11/19
 */
 
 #include <sys/types.h>
@@ -16,8 +21,6 @@ Fecha de última modificación:
 #include <unistd.h>
 #include "estructuras_comunicacion.h"
 #include "procesamiento_archivo.h"
-
-#define TAMNOM 201
 
 int numero_usuarios;
 estadosClientes* clientesEstados;

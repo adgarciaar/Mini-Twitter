@@ -1,16 +1,34 @@
 /*
-Autor:
-Función:
-Nota:
+Nombre del archivo: cliente.c
+Autores: Adrián García y Luis Rosales
+Objetivo: implementa las funciones que usa cada proceso cliente. En términos
+  generales provee implementaciones par iniciar el proceso cliente, enviar datos
+  al proceso servidor a través de pipes y recibir datos del servidor también por
+  medio de pipes a raíz del envío de una señal.
+Funciones: signalHandler, follow, unfollow, enviarTweet, desconectar,
+  imprimirInstruccionesComando, main
+Fecha de última modificación: 04/11/19
 */
 
 #include "cliente.h"
 
+/*
+Función: signalHandler
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: se ejecuta al recibirse una señal de tipo SIGUSR1, enviada por el
+servidor. Una vez recibida, se extraen los datos enviados por el servidor a través
+del pipe servidor_a_cliente. Dependiendo de la operación de la que se recibió
+respuesta (conexión, follow, unfollow, tweet o desconexión) del servidor, se
+realiza una impresión específica por pantalla para comunicar los resultasdos
+al cliente.
+*/
 sighandler_t signalHandler (void){
 
     int numero_bytes;
     int creado;
-    char mensaje[200];
+    char mensaje[TAMANO_TWEET];
     mensajeDelServidor mensajeRecibido;
     mensajeDelServidor mensaje_con_tweet_anterior;
 
@@ -89,6 +107,14 @@ sighandler_t signalHandler (void){
 
 }
 
+/*
+Función: follow
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: solicita al usuario el número del usuario al que quiere seguir,
+luego envía la solicitud de follow al servidor.
+*/
 void follow(){
 
     int confirmacionSenal;
@@ -145,6 +171,14 @@ void follow(){
 
 }
 
+/*
+Función: unfollow
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: solicita al usuario el número del usuario al que quiere dejar de
+seguir, luego envía al servidor la solicitud de unfollow.
+*/
 void unfollow(){
 
     int confirmacionSenal;
@@ -200,11 +234,19 @@ void unfollow(){
     }
 }
 
+/*
+Función: enviarTweet
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: solicita al usuario introducir el tweet que quiere enviar y luego
+envía este al servidor.
+*/
 void enviarTweet(){
 
     int confirmacionSenal;
     mensajeDelCliente mensaje_a_enviar;
-    char tweet[201];
+    char tweet[TAMANO_TWEET];
     int creado = 0;
     int c;
     int contador = 0;
@@ -246,6 +288,13 @@ void enviarTweet(){
     }
 }
 
+/*
+Función: desconectar
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: envía al servidor una solicitud de desconexión.
+*/
 void desconectar(){
 
     int confirmacionSenal;
@@ -274,6 +323,14 @@ void desconectar(){
     }
 }
 
+/*
+Función: imprimirInstruccionesComando
+Autores de la función: Luis Rosales.
+Parámetros de entrada: ninguno.
+Retorno: ninguno.
+Descripción: imprime las instrucciones generales de cómo ejecutar correctamente
+el comando para iniciar el proceso cliente.
+*/
 void imprimirInstruccionesComando(){
     printf("El comando correcto es: ");
     printf("cliente -i <Id> -p <pipeNom>\n\n");
@@ -282,6 +339,22 @@ void imprimirInstruccionesComando(){
     printf("y las banderas -i y -p son obligatorias\n\n");
 }
 
+/*
+Función: main
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: un entero con el número de argumentos recibidos por
+consola y un arreglo de los argumentos recibidos.
+Retorno: un entero indicando si el programa finaliza.
+Descripción: es la función que inicia el proceso, recibiendo y validando
+los argumentos introducidos por consola. Inicializa los pipes con los que el
+cliente se va a comunicar con el servidor (uno de cliente a servidor y otro
+de servidor a cliente). Mantiene un ciclo que muestra al usuario sus opciones
+como cliente, recibiendo en cada iteración el número de la operación que el
+usuario desea realizar. Este ciclo se realiza mientras el usuario no seleccione
+la opción de desconexión. Para la operación solicitada, se llama a la función
+especializada en realizarla. Además, instala el manejador de la señal para
+recibir respuestas o mensajes enviados por el servidor. 
+*/
 int main (int argc, char **argv){
 
     int id_pipe_inicial, pid, creado = 0, res;
@@ -291,7 +364,7 @@ int main (int argc, char **argv){
     int status, c;
     char cOpcion;
     int contador=0;
-    char stringPidProceso[10];
+    char stringPidProceso[TAMANO_STRING_ID_PROCESO];
     char* pipeInicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;

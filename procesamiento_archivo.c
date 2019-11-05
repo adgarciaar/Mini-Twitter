@@ -1,13 +1,23 @@
 /*
-Nombre del archivo:
+Nombre del archivo: procesamiento_archivo.c
 Autores: Adrián García y Luis Rosales
-Objetivo:
-Funciones:
-Fecha de última modificación:
+Objetivo: implementar las funciones que leen el archivo de relaciones de
+  los usuarios y a partir de éste generar un arreglo con la información de
+  los usuarios.
+Funciones: AbrirArchivo, ContarLineasArchivo, LeerArchivo
+Fecha de última modificación: 04/11/19
 */
 
 #include "procesamiento_archivo.h"
 
+/*
+Función: AbrirArchivo
+Autores de la función: Luis Rosales.
+Parámetros de entrada: nombre del archivo a abrir.
+Retorno: un valor booleano que es true si el archivo se puede abrir
+o false si el archivo no se puede abrir.
+Descripción: verifica que un archivo de entrada se puede abrir.
+*/
 bool AbrirArchivo(char nombre_archivo[]){
     FILE *archivo;
     archivo = fopen( nombre_archivo ,"r");
@@ -20,6 +30,13 @@ bool AbrirArchivo(char nombre_archivo[]){
     }/*end if*/
 }
 
+/*
+Función:ContarLineasArchivo
+Autores de la función: Luis Rosales.
+Parámetros de entrada: nombre del archivo al que se le van a contar las líneas.
+Retorno: el número de líneas que tiene el archivo.
+Descripción: cuenta el número de líneas que tiene un archivo y retorna dicho valor.
+*/
 int ContarLineasArchivo(char nombre_archivo[]){
     FILE *archivo;
     int contador_lineas = 0;
@@ -43,6 +60,18 @@ int ContarLineasArchivo(char nombre_archivo[]){
 
     return contador_lineas;
 }
+
+/*
+Función: LeerArchivo
+Autores de la función: Adrián García y Luis Rosales.
+Parámetros de entrada: nombre del archivo a leer y número de líneas que tiene.
+Retorno: apuntador a arreglo de tipo usuario, que contiene todos los datos de
+los usuarios, extraídos del archivo.
+Descripción: lee un archivo línea por línea, almacenando los elementos de cada
+una en una estructura usuario (definida en procesamientoArchivo.h) y devuelve
+un apuntador a arreglo de tipo usuario que contiene todos los datos de los
+usuarios.
+*/
 
 usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
 
@@ -135,49 +164,3 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
     return arreglo_usuarios;
 
 }
-
-/*int main (int argc, char **argv) {
-    /*usar realloc() para cambiar tamaño en ejecución
-    int i,j;
-    int numero_lineas_archivo = 0, numero_usuarios;
-    int numero_siguiendo = 0;
-
-    char nombre_archivo[] = "matriz.txt";
-
-    if( AbrirArchivo(nombre_archivo) == false ){
-        exit(-1);
-    }
-
-    numero_lineas_archivo = ContarLineasArchivo(nombre_archivo);
-
-    usuario* arreglo_usuarios = LeerArchivo(nombre_archivo, numero_lineas_archivo);
-    numero_usuarios = numero_lineas_archivo;
-
-    for(i=0;i<numero_usuarios;i++){
-
-        printf("\n\n%s%d\n", "Usuario ",i+1);
-        printf("%s%d\n", "Siguiendo a ",arreglo_usuarios[i].numero_siguiendo);
-        printf("lista_siguiendo:");
-
-        for(j=0;j<arreglo_usuarios[i].numero_siguiendo;j++){
-            printf("%d ", arreglo_usuarios[i].lista_siguiendo[j]+1);
-        }
-
-        if(arreglo_usuarios[i].lista_siguiendo != NULL){
-            free(arreglo_usuarios[i].lista_siguiendo);
-            arreglo_usuarios[i].lista_siguiendo = NULL;
-        }
-
-        if(arreglo_usuarios[i].tweets != NULL){
-            free(arreglo_usuarios[i].tweets);
-            arreglo_usuarios[i].tweets = NULL;
-        }/*end if
-    }/*end for
-
-    free(arreglo_usuarios);
-    arreglo_usuarios = NULL;
-
-    printf("\n");
-
-    return(0);
-}*/
