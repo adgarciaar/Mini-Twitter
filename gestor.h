@@ -29,7 +29,8 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
 void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido);
 void desconectar(int i);
 void guardarTweet(mensajeDelCliente mensajeRecibido);
-void enviarTweet(mensajeDelCliente mensajeRecibido);
+void EnviarTweetsASeguidorRecienConectado(comunicacionInicialCliente nuevoCliente);
+void enviarTweetASeguidoresConectados(mensajeDelCliente mensajeRecibido);
 sighandler_t signalHandler (void);
 void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente);
 void imprimirInstruccionesComando();

@@ -12,6 +12,7 @@ sighandler_t signalHandler (void){
     int creado;
     char mensaje[200];
     mensajeDelServidor mensajeRecibido;
+    mensajeDelServidor mensaje_con_tweet_anterior;
 
     do {
        id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
@@ -22,7 +23,7 @@ sighandler_t signalHandler (void){
        } else creado = 1;
     } while (creado == 0);
 
-    numero_bytes = read (id_pipe_servidor_a_cliente, &mensajeRecibido, sizeof(mensajeRecibido) );
+    numero_bytes = read (id_pipe_servidor_a_cliente, &mensajeRecibido, sizeof(mensajeDelServidor) );
     if (numero_bytes == -1){
         perror("proceso servidor: ");
         exit(1);
@@ -32,31 +33,52 @@ sighandler_t signalHandler (void){
 
     pidServidor = mensajeRecibido.pid;
 
-    if(mensajeRecibido.numeroMensajes == -2){
-        printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a desconectar.");
+    switch (mensajeRecibido.operacion){
+      case -2:
+          printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a desconectar.");
+          break;
+      case -1:
+          printf("El id del cliente no es válido, no existe dentro del registro. Se procede a desconectar.");
+          break;
+      case 0:
+          printf("El id del cliente es válido");
+          break;
+      case 1: /*follow*/
+          printf("Respuesta de operación follow:\n %s", mensajeRecibido.mensaje);
+          break;
+      case 2: /*unfollow*/
+          printf("Respuesta de operación unfollow:\n %s", mensajeRecibido.mensaje);
+          break;
+      case 3: /*tweet*/
+          printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
+          printf("Tweet: %s\n", mensajeRecibido.mensaje);
+          break;
     }
-    if(mensajeRecibido.numeroMensajes == -1){
-        printf("El id del cliente no es válido, no existe dentro del registro. Se procede a desconectar.");
-    }
-    if(mensajeRecibido.numeroMensajes == 0){
-        printf("El id del cliente es válido");
-    }
-    if(mensajeRecibido.numeroMensajes == 1){
-        switch (mensajeRecibido.operacion) {
-          case 1: /*follow*/
-              printf("Respuesta de operación follow:\n %s", mensajeRecibido.mensaje);
-              break;
-          case 2: /*unfollow*/
-              printf("Respuesta de operación unfollow:\n %s", mensajeRecibido.mensaje);
-              break;
-          case 3: /*tweet*/
-              printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
-              printf("Tweet: %s\n", mensajeRecibido.mensaje);
-              break;
+
+    if(mensajeRecibido.operacion == 0){ /*se pueden recibir tweets hechos ya por otros usuarios*/
+
+        do {
+           id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
+           if (id_pipe_servidor_a_cliente == -1) {
+               perror("pipe");
+               printf(" Se volverá a intentar después\n");
+               sleep(10);
+           } else creado = 1;
+        } while (creado == 0);
+
+        numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
+        while(numero_bytes>0){
+            if(mensaje_con_tweet_anterior.operacion == 4){
+                printf("\nMientras no estabas\n");
+                printf("Tweet realizado por cliente %d\n",mensaje_con_tweet_anterior.idTweetero);
+                printf("Tweet: %s\n", mensaje_con_tweet_anterior.mensaje);
+            }
+            numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
         }
     }
+
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
-    if(mensajeRecibido.numeroMensajes < 0){
+    if(mensajeRecibido.operacion == -1 || mensajeRecibido.operacion == -2){
         unlink(pipe_cliente_a_servidor);
         unlink(pipe_servidor_a_cliente);
         printf("Desconexion realizada\n");

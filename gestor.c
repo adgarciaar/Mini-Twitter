@@ -17,7 +17,6 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
     numero_usuario_a_seguir = numero_usuario_a_seguir-1; //para manejar correctamente índice
 
     mensajeParaCliente.pid = getpid();
-    mensajeParaCliente.numeroMensajes = 1;
     mensajeParaCliente.operacion = 1;
     sprintf(string_usuario_a_seguir, "%d", numero_usuario_a_seguir+1);
 
@@ -75,7 +74,6 @@ void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
     char string_usuario_seguido[10];
 
     mensajeParaCliente.pid = getpid();
-    mensajeParaCliente.numeroMensajes = 1;
     mensajeParaCliente.operacion = 2;
     sprintf(string_usuario_seguido, "%d", numero_usuario_seguido+1);
 
@@ -134,7 +132,7 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
 
     char** arreglo_tweets_aux;
     int idTweetero, posicion_guardado;
-    char* tweet_aux;
+    char* tweet_aux = (char*)malloc(sizeof(char*TAMANO_TWEET));
 
     idTweetero = mensajeRecibido.numeroCliente-1; /*para manejar los índices correctamente*/
 
@@ -155,6 +153,7 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
         arreglo_tweets_aux = NULL;
     }
     posicion_guardado = arreglo_usuarios[idTweetero].numero_tweets;
+
     strcpy(tweet_aux, mensajeRecibido.mensaje);
 
     arreglo_usuarios[idTweetero].tweets[ posicion_guardado ] = tweet_aux;
@@ -167,14 +166,53 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
     printf("Tweet del usuario %d guardado\n", idTweetero+1);
 }
 
-void enviarTweet(mensajeDelCliente mensajeRecibido){
+void EnviarTweetsASeguidorRecienConectado(comunicacionInicialCliente nuevoCliente){
+
+    int id_pipe_servidor_a_cliente, confirmacionSenal, i, j, creado;
+    mensajeDelServidor mensajeParaCliente;
+    int indice = nuevoCliente.numeroCliente-1;
+
+    mensajeParaCliente.pid = getpid();
+    mensajeParaCliente.operacion = 4;
+
+    if(arreglo_usuarios[indice].numero_siguiendo > 0){ /*si está siguiendo a alguien*/
+        for(i=0;i<numero_usuarios;i++){
+            if( arreglo_usuarios[indice].lista_siguiendo[i] == 1 ){ /*si sigue a usuario i*/
+                for(j=0;j<arreglo_usuarios[i].numero_tweets;j++){ /*la cantidad de tweets hechos por ese usuario i*/
+
+                    creado = 0;
+                    do {
+                       id_pipe_servidor_a_cliente = open(nuevoCliente.pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
+                       if (id_pipe_servidor_a_cliente == -1) {
+                          perror("Server abriendo el pipe especifico\n");
+                          printf("Se volvera a intentar despues\n");
+                          sleep(5);
+                       } else creado = 1;
+                    }  while (creado == 0);
+
+                    /*copiar id de quien hizo el tweet, se hace +1 para manejo correcto de índice para mostrar en pantalla*/
+                    mensajeParaCliente.idTweetero = i+1;
+
+                    /*copiar mensaje del otro usuario para enviarlo*/
+                    strcpy(mensajeParaCliente.mensaje, arreglo_usuarios[i].tweets[j]);
+                    printf("Tweet guardado para enviar: %s\n", mensajeParaCliente.mensaje );
+
+                    write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+                    printf("Enviado tweet guardado a cliente con id %d y pid %d\n", indice+1, nuevoCliente.pid);
+                }
+            }
+        }
+    }
+
+}
+
+void enviarTweetASeguidoresConectados(mensajeDelCliente mensajeRecibido){
 
   mensajeDelServidor mensajeParaCliente;
   int id_pipe_servidor_a_cliente, confirmacionSenal, i, j, creado;
   bool b;
 
   mensajeParaCliente.pid = getpid();
-  mensajeParaCliente.numeroMensajes = 1;
   mensajeParaCliente.operacion = 3;
   strcpy(mensajeParaCliente.mensaje, mensajeRecibido.mensaje);
   mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
@@ -256,7 +294,7 @@ sighandler_t signalHandler (void){
                         printf("Cliente envió un tweet\n");
                         printf("Tweet recibido: %s\n", mensajeRecibido.mensaje);
                         guardarTweet(mensajeRecibido);
-                        enviarTweet(mensajeRecibido);
+                        enviarTweetASeguidoresConectados(mensajeRecibido);
                         break;
                     case 4: // se va a desconectar
                         desconectar(i);
@@ -278,21 +316,20 @@ sighandler_t signalHandler (void){
 void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
 
     int id_pipe_servidor_a_cliente, creado = 0, confirmacionSenal, id_pipe_cliente_a_servidor;
+    mensajeDelServidor mensajeParaCliente;
 
     printf("Enviando respuesta inicial a cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
 
-    mensajeDelServidor mensajeParaCliente;
-
     mensajeParaCliente.pid = getpid();
 
-    if (nuevoCliente.numeroCliente < 1 || nuevoCliente.numeroCliente>10){
-        mensajeParaCliente.numeroMensajes = -1;
+    if (nuevoCliente.numeroCliente < 1 || nuevoCliente.numeroCliente>numero_usuarios){
+        mensajeParaCliente.operacion = -1;
     }else{
         if( clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo == true ){
           //si ese cliente ya está conectado entonces esta nueva conexión no es válida
-            mensajeParaCliente.numeroMensajes = -2;
+            mensajeParaCliente.operacion = -2;
         }else{
-            mensajeParaCliente.numeroMensajes = 0;
+            mensajeParaCliente.operacion = 0;
             clientesEstados[ nuevoCliente.numeroCliente - 1 ].pid = nuevoCliente.pid;
             strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipe_cliente_a_servidor , nuevoCliente.pipe_cliente_a_servidor);
             strcpy(clientesEstados[ nuevoCliente.numeroCliente - 1 ].pipe_servidor_a_cliente , nuevoCliente.pipe_servidor_a_cliente);
@@ -320,13 +357,18 @@ void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
     }  while (creado == 0);
 
     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
+    printf("Enviada respuesta inicial a cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
+
+    if(mensajeParaCliente.operacion == 0){ /*si la conexión fue exitosa*/
+        EnviarTweetsASeguidorRecienConectado(nuevoCliente);
+    }
 
     confirmacionSenal = kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
     }
+    printf("\n");
 
-    printf("Enviada respuesta inicial a cliente con id %d y pid %d\n\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
 }
 
 void imprimirInstruccionesComando(){

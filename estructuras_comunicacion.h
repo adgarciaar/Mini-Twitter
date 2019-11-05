@@ -11,15 +11,14 @@ typedef struct data {
 
 typedef struct {
     int pid;
-    int operacion; //1 para follow, 2 unfollow, 3 tweet, 4 desconexion
-    int idTweetero;
-    int numeroMensajes;
+    int operacion; 
+    int idTweetero; /*si se envió tweet acá se envía el id de quien lo hizo*/
     char mensaje[201];
 } mensajeDelServidor;
 
 typedef struct {
     int pid;
-    int operacion; //1 para follow, 2 unfollow, 3 tweet, 4 desconexion
+    int operacion; /*1 para follow, 2 unfollow, 3 tweet, 4 desconexion*/
     int numeroCliente;
     char mensaje[201];
     int numero_cliente_follow_unfollow;
