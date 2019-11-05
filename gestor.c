@@ -268,7 +268,7 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
 
     char** arreglo_tweets_aux;
     int idTweetero, posicion_guardado;
-    char* tweet_aux = (char*)malloc(sizeof(char*TAMANO_TWEET));
+    char* tweet_aux = (char*)malloc(sizeof(char)*TAMANO_TWEET);
 
     idTweetero = mensajeRecibido.numeroCliente-1; /*para manejar los índices correctamente*/
 

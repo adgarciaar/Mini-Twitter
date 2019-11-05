@@ -353,7 +353,7 @@ como cliente, recibiendo en cada iteración el número de la operación que el
 usuario desea realizar. Este ciclo se realiza mientras el usuario no seleccione
 la opción de desconexión. Para la operación solicitada, se llama a la función
 especializada en realizarla. Además, instala el manejador de la señal para
-recibir respuestas o mensajes enviados por el servidor. 
+recibir respuestas o mensajes enviados por el servidor.
 */
 int main (int argc, char **argv){
 

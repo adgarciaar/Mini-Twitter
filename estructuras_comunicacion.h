@@ -10,8 +10,8 @@ Fecha de última modificación: 04/11/19
 
 #include <stdbool.h>
 
-#define TAMANO_TWEET 201
 #define TAMANO_NOMBRE_PIPE 35
+#define TAMANO_TWEET 201
 #define TAMANO_STRING_ID_PROCESO 10
 #define TAMANO_STRING_ID_USUARIO 10
 
