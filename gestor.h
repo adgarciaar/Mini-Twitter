@@ -25,6 +25,7 @@ Fecha de última modificación: 04/11/19
 int numero_usuarios;
 estadosClientes* clientesEstados;
 usuario* arreglo_usuarios;
+char* pipeInicial;
 
 typedef void (*sighandler_t)(int);
 
@@ -35,6 +36,7 @@ void guardarTweet(mensajeDelCliente mensajeRecibido);
 void EnviarTweetsASeguidorRecienConectado(comunicacionInicialCliente nuevoCliente);
 void enviarTweetASeguidoresConectados(mensajeDelCliente mensajeRecibido);
 sighandler_t signalHandler (void);
+sighandler_t signalHandlerSalida (void);
 void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente);
 void imprimirInstruccionesComando();
 void imprimirInformacionEstructuraUsuarios();

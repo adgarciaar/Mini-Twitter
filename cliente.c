@@ -99,6 +99,8 @@ sighandler_t signalHandler (void){
     if(mensajeRecibido.operacion == -1 || mensajeRecibido.operacion == -2){
         unlink(pipe_cliente_a_servidor);
         unlink(pipe_servidor_a_cliente);
+        printf("Eliminado: %s\n", pipe_cliente_a_servidor);
+        printf("Eliminado: %s\n", pipe_servidor_a_cliente);
         printf("Desconexion realizada\n");
         exit(1);
     }else{
@@ -295,29 +297,34 @@ Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: envía al servidor una solicitud de desconexión.
 */
-void desconectar(){
+void desconectar(char* pipeInicial){
 
     int confirmacionSenal;
     int creado = 0;
     mensajeDelCliente mensaje_a_enviar;
+    int id_pipe;
+    char pipeDesconexion[TAMANO_NOMBRE_PIPE];
+
+    strcpy(pipeDesconexion, pipeInicial);
+    strcat(pipeDesconexion, "_d");
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 4;
     mensaje_a_enviar.numeroCliente = idCliente;
 
     do {
-       id_pipe_cliente_a_servidor = open(pipe_cliente_a_servidor, O_WRONLY | O_NONBLOCK);
-       if (id_pipe_cliente_a_servidor == -1) {
+       id_pipe = open(pipeDesconexion, O_WRONLY | O_NONBLOCK);
+       if (id_pipe == -1) {
            perror("pipe");
            printf(" Se volvera a intentar despues\n");
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
 
-    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+    write(id_pipe, &mensaje_a_enviar , sizeof(mensajeDelCliente));
 
     printf("Desconexion avisada al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
+    confirmacionSenal = kill (pidServidor, SIGUSR2); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
     }
@@ -516,10 +523,11 @@ int main (int argc, char **argv){
 
     } while (opcion != 4);
 
-    desconectar();
-    sleep(1);
+    desconectar(pipeInicial);
     unlink(pipe_cliente_a_servidor);
     unlink(pipe_servidor_a_cliente);
+    printf("Eliminado: %s\n", pipe_cliente_a_servidor);
+    printf("Eliminado: %s\n", pipe_servidor_a_cliente);
     printf("Desconexion realizada\n");
     exit(0);
 }
