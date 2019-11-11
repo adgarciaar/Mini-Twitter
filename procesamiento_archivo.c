@@ -108,10 +108,10 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
         if(arreglo_usuarios[i].lista_siguiendo == NULL){
             perror("Memoria no alocada");
             exit(1);
-        }
+        }/*end if*/
         arreglo_usuarios[i].tweets = NULL;
         arreglo_usuarios[i].numero_tweets = 0;
-    }
+    }/*end for*/
 
     archivo = fopen( nombre_archivo ,"r");
 
@@ -126,8 +126,8 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
           for(i = 0; i <= strlen(linea_aux); i++){
               if(linea_aux[i] == delimitador2){
                   linea_aux[i] = ' ';
-              }
-          }
+              }/*end if*/
+          }/*end for*/
 
           contador_horizontal = 0;
 
@@ -144,10 +144,10 @@ usuario* LeerArchivo(char nombre_archivo[], int numero_lineas_archivo){
                   arreglo_usuarios[numero_linea].numero_siguiendo = arreglo_usuarios[numero_linea].numero_siguiendo+1;
               }else{
                   arreglo_usuarios[numero_linea].lista_siguiendo[contador_horizontal] = 0;
-              }
+              }/*end if*/
               contador_horizontal = contador_horizontal + 1;
               token = strtok(NULL, delimitador);
-          }
+          }/*end while*/
           numero_linea = numero_linea + 1;
           /* Get the next line */
           line_size = getline(&linea, &line_buf_size, archivo);

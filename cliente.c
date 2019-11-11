@@ -40,12 +40,13 @@ sighandler_t signalHandler (void){
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
+    /*end do while*/
 
     numero_bytes = read (id_pipe_servidor_a_cliente, &mensajeRecibido, sizeof(mensajeDelServidor) );
     if (numero_bytes == -1){
         perror("proceso servidor: ");
         exit(1);
-    }
+    }/*end if*/
 
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
@@ -71,7 +72,7 @@ sighandler_t signalHandler (void){
           printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
           printf("Tweet: %s\n", mensajeRecibido.mensaje);
           break;
-    }
+    }/*end switch*/
 
     if(mensajeRecibido.operacion == 0){ /*se pueden recibir tweets hechos ya por otros usuarios*/
 
@@ -83,6 +84,7 @@ sighandler_t signalHandler (void){
                sleep(10);
            } else creado = 1;
         } while (creado == 0);
+        /*end do while*/
 
         numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
         while(numero_bytes>0){
@@ -92,8 +94,8 @@ sighandler_t signalHandler (void){
                 printf("Tweet: %s\n", mensaje_con_tweet_anterior.mensaje);
             }
             numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
-        }
-    }
+        }/*end while*/
+    }/*end if*/
 
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
     if(mensajeRecibido.operacion == -1 || mensajeRecibido.operacion == -2){
@@ -105,7 +107,7 @@ sighandler_t signalHandler (void){
         exit(1);
     }else{
         clienteAceptado = true;
-    }
+    }/*end if*/
 
 }
 
@@ -127,27 +129,27 @@ void follow(){
     printf("Por favor ingrese el número del usuario a seguir: ");
 
     status = scanf("%d", &usuario_a_seguir);
-    while ((c = fgetc(stdin)) != '\n' && c != EOF){
+    while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
         contador = contador + 1;
-    }; /* Flush stdin */
+    }; /*end while*/
 
     while(contador>0 || status!=1 || usuario_a_seguir <= 0 || usuario_a_seguir == idCliente){
         contador = 0;
         if( usuario_a_seguir <= 0 ){
             printf("Error: el número debe ser mayor a cero\n");
-        }
+        }/*end if*/
         if( usuario_a_seguir == idCliente ){
             printf("Error: no te puedes seguir a ti mismo\n");
-        }
+        }/*end if*/
         if (contador>0 || status!=1){
           printf("Error: por favor ingrese un número\n");
-        }
+        }/*end if*/
         printf("Por favor ingrese el número del usuario a seguir: ");
         status = scanf("%d", &usuario_a_seguir);
         while ((c = fgetc(stdin)) != '\n' && c != EOF){
             contador = contador + 1;
-        }
-    }
+        }/*end while*/
+    }/*end while*/
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 1;
@@ -162,6 +164,7 @@ void follow(){
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
+    /*end do while*/
 
     write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
 
@@ -169,7 +172,7 @@ void follow(){
     confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
 
 }
 
@@ -191,27 +194,27 @@ void unfollow(){
     printf("Por favor ingrese el número del usuario a dejar de seguir: ");
 
     status = scanf("%d", &usuario_a_dejar_de_seguir);
-    while ((c = fgetc(stdin)) != '\n' && c != EOF){
+    while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
         contador = contador + 1;
-    }; /* Flush stdin */
+    }; /*end while*/
 
     while(contador>0 || status!=1 || usuario_a_dejar_de_seguir <= 0 || usuario_a_dejar_de_seguir == idCliente){
         contador = 0;
         if( usuario_a_dejar_de_seguir <= 0 ){
             printf("Error: el número debe ser mayor a cero\n");
-        }
+        }/*end if*/
         if( usuario_a_dejar_de_seguir == idCliente ){
             printf("Error: no te puedes dejar de seguir a ti mismo (porque no te puedes seguir a ti mismo)\n");
-        }
+        }/*end if*/
         if (contador>0 || status!=1){
           printf("Error: por favor ingrese un número\n");
-        }
+        }/*end if*/
         printf("Por favor ingrese el número del usuario a dejar de seguir: ");
         status = scanf("%d", &usuario_a_dejar_de_seguir);
         while ((c = fgetc(stdin)) != '\n' && c != EOF){
             contador = contador + 1;
-        }
-    }
+        }/*end while*/
+    }/*end while*/
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 2;
@@ -226,6 +229,7 @@ void unfollow(){
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
+    /*end do while*/
 
     write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
 
@@ -233,7 +237,7 @@ void unfollow(){
     confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
 }
 
 /*
@@ -261,7 +265,7 @@ void enviarTweet(){
 
     while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
         contador = contador+1; //sumar cada caracter que sobró y quedó en stdin
-    }
+    }/*end while*/
 
     if(contador > 0){
         printf("Error: el tweet supera los 200 caracteres\n");
@@ -279,6 +283,7 @@ void enviarTweet(){
                sleep(10);
            } else creado = 1;
         } while (creado == 0);
+        /*end do while*/
 
         write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
 
@@ -286,8 +291,8 @@ void enviarTweet(){
         confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
         if(confirmacionSenal == -1){
             perror("No se pudo enviar señal");
-        }
-    }
+        }/*end if*/
+    }/*end if*/
 }
 
 /*
@@ -320,6 +325,7 @@ void desconectar(char* pipeInicial){
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
+    /*end do while*/
 
     write(id_pipe, &mensaje_a_enviar , sizeof(mensajeDelCliente));
 
@@ -327,7 +333,7 @@ void desconectar(char* pipeInicial){
     confirmacionSenal = kill (pidServidor, SIGUSR2); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
 }
 
 /*
@@ -392,7 +398,7 @@ int main (int argc, char **argv){
             printf("\nError con las banderas del comando\n\n");
             imprimirInstruccionesComando();
             exit(1);
-        }
+        }/*end if*/
     }/*end if*/
 
     if( strcmp(argv[1],"-i") == 0 && strcmp(argv[3],"-p") ==0 ){
@@ -401,13 +407,13 @@ int main (int argc, char **argv){
     }else{
         idCliente = atoi(argv[4]);
         pipeInicial = argv[2];
-    }
+    }/*end if*/
 
     if(idCliente<=0){
         printf("\nError: el id del cliente debe ser mayor a cero\n\n");
         imprimirInstruccionesComando();
         exit(1);
-    }
+    }/*end if*/
 
     /*printf("Pipe inicial: %s\n", pipeInicial);*/
 
@@ -430,7 +436,7 @@ int main (int argc, char **argv){
     if (mkfifo (pipe_cliente_a_servidor, fifo_mode) == -1) {
        perror("Client  mkfifo");
        exit(1);
-    }
+    }/*end if*/
     printf("\nPipe especifico creado: %s\n", pipe_cliente_a_servidor);
 
     /*Se crea un pipe específico para la comunicación con el server.*/
@@ -438,7 +444,7 @@ int main (int argc, char **argv){
     if (mkfifo (pipe_servidor_a_cliente, fifo_mode) == -1) {
        perror("Client  mkfifo");
        exit(1);
-    }
+    }/*end if*/
     printf("\nPipe especifico creado: %s\n", pipe_servidor_a_cliente);
 
     /*Se abre el pipe del servidor al cliente*/
@@ -451,6 +457,7 @@ int main (int argc, char **argv){
             sleep(10);
         } else creado = 1;
      } while (creado == 0);
+     /*end do while*/
 
      /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
      do {
@@ -461,6 +468,7 @@ int main (int argc, char **argv){
    	       sleep(10);
         } else creado = 1;
      } while (creado == 0);
+     /*end do while*/
 
     /* se envia la información del cliente al servidor */
     write(id_pipe_inicial, &datosProcesoCliente , sizeof(comunicacionInicialCliente));
@@ -476,9 +484,9 @@ int main (int argc, char **argv){
             printf("Digite numero de la opcion: ");
 
             status = scanf("%c", &cOpcion);
-            while ((c = fgetc(stdin)) != '\n' && c != EOF){
+            while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
                 contador = contador + 1;
-            }; /* Flush stdin */
+            }; /*end while*/
 
             while(contador>0 || (int)cOpcion <49 || (int)cOpcion>52){
                 contador = 0;
@@ -487,8 +495,8 @@ int main (int argc, char **argv){
 		            status = scanf("%c", &cOpcion);
                 while ((c = fgetc(stdin)) != '\n' && c != EOF){
                     contador = contador + 1;
-                }
-            }
+                }/*end while*/
+            }/*end while*/
 
             /*opcion = (int)cOpcion;*/
 
@@ -505,11 +513,7 @@ int main (int argc, char **argv){
                 case 52:
                     opcion = 4;
                     break;
-            }
-
-            /*if(opcion < 49 || opcion > 52){
-                printf("Opcion es incorrecta");
-            }*/
+            }/*end switch*/
 
             if(opcion >= 1 && opcion <=4){
 
@@ -523,11 +527,12 @@ int main (int argc, char **argv){
                     case 3:
                         enviarTweet();
                         break;
-                }
-            }
-        }
+                }/*end switch*/
+            }/*end if*/
+        }/*end if*/
 
     } while (opcion != 4);
+    /*end do while*/
 
     desconectar(pipeInicial);
     unlink(pipe_cliente_a_servidor);

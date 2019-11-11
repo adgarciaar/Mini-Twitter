@@ -51,12 +51,9 @@ sighandler_t signalHandler (void){
                   sleep(5);
                } else creado = 1;
             }  while (creado == 0);
+            /*end do while*/
 
             numero_bytes = read (id_pipe_cliente_a_servidor, &mensajeRecibido, sizeof(mensajeDelCliente) );
-            /*if (numero_bytes == -1){
-                perror("proceso servidor: ");
-                /*exit(1);
-            }*/
             if(numero_bytes > 0){
                 printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
                     mensajeRecibido.pid);
@@ -80,13 +77,13 @@ sighandler_t signalHandler (void){
                         guardarTweet(mensajeRecibido);
                         enviarTweetASeguidoresConectados(mensajeRecibido);
                         break;
-                }
+                }/*end switch*/
 
-            }
+            }/*end if*/
 
-        }
+        }/*end if*/
 
-    }
+    }/*end for*/
 
     printf("El paquete ha sido procesado\n\n");
 }
@@ -116,16 +113,16 @@ sighandler_t signalHandlerSalida (void){
         if(arreglo_usuarios[i].lista_siguiendo != NULL){
             free(arreglo_usuarios[i].lista_siguiendo);
             arreglo_usuarios[i].lista_siguiendo = NULL;
-        }
+        }/*end if*/
 
         if(arreglo_usuarios[i].tweets != NULL){
             for(j=0;j<arreglo_usuarios[i].numero_tweets;j++){
                 free(arreglo_usuarios[i].tweets[i]);
-            }
+            }/*end for*/
             free(arreglo_usuarios[i].tweets);
             arreglo_usuarios[i].tweets = NULL;
         }/*end if*/
-    }
+    }/*end for*/
 
     free(arreglo_usuarios);
     arreglo_usuarios = NULL;
@@ -157,6 +154,7 @@ sighandler_t signalHandlerDesconexion (void){
           sleep(5);
       } else creado = 1;
   }  while (creado == 0);
+  /*end do while*/
 
   numero_bytes = read (id_pipe, &mensajeRecibido, sizeof(mensajeDelCliente) );
   if(numero_bytes > 0){
@@ -166,7 +164,7 @@ sighandler_t signalHandlerDesconexion (void){
 
       printf("Cliente con id %d y pid %d se ha desconectado\n",  mensajeRecibido.numeroCliente,
           mensajeRecibido.pid);
-  }
+  }/*end if*/
 
   printf("El paquete ha sido procesado\n\n");
 }
@@ -218,9 +216,9 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
             strcat(mensajeParaCliente.mensaje, string_usuario_a_seguir);
             strcat(mensajeParaCliente.mensaje, "\n");
             printf("Operación follow fallida: usuario %d ya sigue a usuario %d\n", numero_usuario_seguidor+1, numero_usuario_a_seguir+1);
-        }
-        /*printf("entro ahis %s\n", mensajeParaCliente.mensaje);*/
-    }
+        }/*end if*/
+
+    }/*end if*/
 
     do {
        id_pipe_servidor_a_cliente = open(clientesEstados[numero_usuario_seguidor].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
@@ -230,17 +228,16 @@ void adicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
           sleep(5);
        } else creado = 1;
     }  while (creado == 0);
+    /*end do while*/
 
     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
 
     confirmacionSenal = kill (clientesEstados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
-
-    /*imprimirInformacionEstructuraUsuarios();*/
 
 }
 
@@ -289,8 +286,8 @@ void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
             strcat(mensajeParaCliente.mensaje, string_usuario_seguido);
             strcat(mensajeParaCliente.mensaje, "\n");
             printf("Operación unfollow fallida: usuario %d no sigue a usuario %d\n", numero_usuario_seguidor, numero_usuario_seguido);
-        }
-    }
+        }/*end if*/
+    }/*end if*/
 
     do {
        id_pipe_servidor_a_cliente = open(clientesEstados[numero_usuario_seguidor].pipe_servidor_a_cliente, O_WRONLY | O_NONBLOCK);
@@ -300,12 +297,14 @@ void removerSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
           sleep(5);
        } else creado = 1;
     }  while (creado == 0);
+    /*end do while*/
+
     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
 
     confirmacionSenal = kill (clientesEstados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientesEstados[numero_usuario_seguidor].pid);
 
@@ -352,17 +351,17 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
             if(arreglo_usuarios[idTweetero].tweets == NULL){
                 perror("Memoria no alocada");
                 exit(1);
-            }
+            }/*end if*/
     }else{
         arreglo_tweets_aux = realloc(arreglo_usuarios[idTweetero].tweets,
               (arreglo_usuarios[idTweetero].numero_tweets+1) * sizeof(char*));
         if(arreglo_tweets_aux == NULL){
             perror("Memoria no alocada");
             exit(1);
-        }
+        }/*end if*/
         arreglo_usuarios[idTweetero].tweets = arreglo_tweets_aux;
         arreglo_tweets_aux = NULL;
-    }
+    }/*end if*/
     posicion_guardado = arreglo_usuarios[idTweetero].numero_tweets;
 
     strcpy(tweet_aux, mensajeRecibido.mensaje);
@@ -413,6 +412,7 @@ void EnviarTweetsASeguidorRecienConectado(comunicacionInicialCliente nuevoClient
                           sleep(5);
                        } else creado = 1;
                     }  while (creado == 0);
+                    /*end do while*/
 
                     /*copiar id de quien hizo el tweet, se hace +1 para manejo correcto de índice para mostrar en pantalla*/
                     mensajeParaCliente.idTweetero = i+1;
@@ -423,10 +423,10 @@ void EnviarTweetsASeguidorRecienConectado(comunicacionInicialCliente nuevoClient
 
                     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
                     printf("Enviado tweet guardado a cliente con id %d y pid %d\n", indice+1, nuevoCliente.pid);
-                }
-            }
-        }
-    }
+                }/*end for*/
+            }/*end if*/
+        }/*end for*/
+    }/*end if*/
 
 }
 
@@ -465,16 +465,17 @@ void enviarTweetASeguidoresConectados(mensajeDelCliente mensajeRecibido){
                     sleep(5);
                  } else creado = 1;
               }  while (creado == 0);
+              /*end do while*/
 
               write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
 
               confirmacionSenal = kill (clientesEstados[i].pid, SIGUSR1); /*enviar la señal*/
               if(confirmacionSenal == -1){
                   perror("No se pudo enviar señal");
-              }
+              }/*end if*/
               printf("Enviado tweet a cliente con id %d y pid %d\n", i+1, clientesEstados[i].pid);
-      }
-  }
+      }/*end if*/
+  }/*end for*/
 
 }
 
@@ -523,8 +524,9 @@ void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
                   sleep(5);
                } else creado = 1;
             }  while (creado == 0);
-        }
-    }
+            /*end do while*/
+        }/*end if*/
+    }/*end if*/
 
     do {
        id_pipe_servidor_a_cliente = open(nuevoCliente.pipe_servidor_a_cliente, O_WRONLY| O_NONBLOCK);
@@ -534,18 +536,19 @@ void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
           sleep(5);
        } else creado = 1;
     }  while (creado == 0);
+    /*end do while*/
 
     write(id_pipe_servidor_a_cliente, &mensajeParaCliente, sizeof(mensajeDelServidor) );
     printf("Enviada respuesta inicial a cliente con id %d y pid %d\n", nuevoCliente.numeroCliente, nuevoCliente.pid);
 
     if(mensajeParaCliente.operacion == 0){ /*si la conexión fue exitosa*/
         EnviarTweetsASeguidorRecienConectado(nuevoCliente);
-    }
+    }/*end if*/
 
     confirmacionSenal = kill (nuevoCliente.pid, SIGUSR1); /*enviar la señal*/
     if(confirmacionSenal == -1){
         perror("No se pudo enviar señal");
-    }
+    }/*end if*/
     printf("\n");
 
 }
@@ -588,9 +591,9 @@ void imprimirInformacionEstructuraUsuarios(){
             for(j=0;j<numero_usuarios;j++){
                 if( arreglo_usuarios[i].lista_siguiendo[j] == 1 ){
                     printf("%d ",j+1);
-                }
-            }
-        }
+                }/*end if*/
+            }/*end for*/
+        }/*end if*/
 
     }/*end for*/
 }
@@ -636,7 +639,7 @@ int main (int argc, char **argv){
             printf("\nError con las banderas del comando\n\n");
             imprimirInstruccionesComando();
             exit(1);
-        }
+        }/*end if*/
     }/*end if*/
 
     if( strcmp(argv[1],"-r") == 0 && strcmp(argv[3],"-p") ==0 ){
@@ -645,7 +648,7 @@ int main (int argc, char **argv){
     }else{
         strcpy(nombre_archivo, argv[4]);
         pipeInicial = argv[2];
-    }
+    }/*end if*/
     strcpy(pipeDesconexion, pipeInicial);
     strcat(pipeDesconexion, "_d");
 
@@ -661,13 +664,13 @@ int main (int argc, char **argv){
     if (mkfifo (pipeInicial, fifo_mode) == -1) {
        perror("Server mkfifo");
        exit(1);
-    }
+    }/*end if*/
 
     unlink(pipeDesconexion);
     if (mkfifo (pipeDesconexion, fifo_mode) == -1) {
        perror("Server mkfifo");
        exit(1);
-    }
+    }/*end if*/
 
     do {
        pipe_desconexion = open(pipeDesconexion, O_RDONLY | O_NONBLOCK);
@@ -677,11 +680,12 @@ int main (int argc, char **argv){
            sleep(10);
        } else creado = 1;
     } while (creado == 0);
+    /*end do while*/
 
     /*leer el archivo e imprimir la información almacenada en este*/
     if( AbrirArchivo(nombre_archivo) == false ){
         exit(1);
-    }
+    }/*end if*/
 
     numero_lineas_archivo = ContarLineasArchivo(nombre_archivo);
 
@@ -708,7 +712,7 @@ int main (int argc, char **argv){
         clientesEstados[i].activo = false;
         strcpy(clientesEstados[i].pipe_cliente_a_servidor , "");
         strcpy(clientesEstados[i].pipe_servidor_a_cliente , "");
-    }
+    }/*end for*/
 
     /*ejecutar hasta seleccionar desconexión*/
     while(1){
@@ -722,12 +726,13 @@ int main (int argc, char **argv){
                sleep(5);
            } else creado = 1;
         } while (creado == 0);
+        /*end do while*/
 
         numero_bytes = read (id_pipe_inicial, &datosProcesoCliente, sizeof(comunicacionInicialCliente) );
         if (numero_bytes == -1){
             perror("proceso servidor: ");
             exit(1);
-        }
+        }/*end if*/
 
         if(numero_bytes > 0){
 
@@ -739,8 +744,8 @@ int main (int argc, char **argv){
               datosProcesoCliente.pipe_servidor_a_cliente);
             manejarNuevaConexion(datosProcesoCliente);
 
-        }
-    }
+        }/*end if*/
+    }/*end while*/
 
     exit(0);
 
