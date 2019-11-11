@@ -371,8 +371,6 @@ void guardarTweet(mensajeDelCliente mensajeRecibido){
 
     tweet_aux = NULL;
 
-    /*printf("Se guardó tweet: %s\n", arreglo_usuarios[idTweetero].tweets[ posicion_guardado ]);
-    printf("En el usuario: %d y posicion %d\n", idTweetero, posicion_guardado);*/
     printf("Tweet del usuario %d guardado\n", idTweetero+1);
 }
 
@@ -502,11 +500,12 @@ void manejarNuevaConexion(comunicacionInicialCliente nuevoCliente){
 
     mensajeParaCliente.pid = getpid();
 
-    if (nuevoCliente.numeroCliente < 1 || nuevoCliente.numeroCliente>numero_usuarios){
+    if (nuevoCliente.numeroCliente>numero_usuarios){
+      /*si ese cliente no tiene un id válido*/
         mensajeParaCliente.operacion = -1;
     }else{
         if( clientesEstados[ nuevoCliente.numeroCliente - 1 ].activo == true ){
-          //si ese cliente ya está conectado entonces esta nueva conexión no es válida
+          /*si ese cliente ya está conectado entonces esta nueva conexión no es válida*/
             mensajeParaCliente.operacion = -2;
         }else{
             mensajeParaCliente.operacion = 0;
@@ -626,8 +625,6 @@ int main (int argc, char **argv){
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
 
-    /*numero_usuarios = 10;*/
-
     if(argc!=5){ /*No pueden haber más ni menos de 5 argumentos*/
         printf("\nError con número de argumentos\n\n");
         imprimirInstruccionesComando();
@@ -651,9 +648,6 @@ int main (int argc, char **argv){
     }/*end if*/
     strcpy(pipeDesconexion, pipeInicial);
     strcat(pipeDesconexion, "_d");
-
-    /*printf("Nombre archivo: %s\n", nombre_archivo);
-    printf("Nombre pipe: %s\n", pipeInicial);*/
 
     signal (SIGINT, (sighandler_t)signalHandlerSalida); /* Instalar manejador de la señal */
     signal (SIGUSR1, (sighandler_t)signalHandler); /* Instalar manejador de la señal */

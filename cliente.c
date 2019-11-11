@@ -415,8 +415,6 @@ int main (int argc, char **argv){
         exit(1);
     }/*end if*/
 
-    /*printf("Pipe inicial: %s\n", pipeInicial);*/
-
     pid = getpid();
 
     sprintf(stringPidProceso, "%d", pid);
@@ -497,8 +495,6 @@ int main (int argc, char **argv){
                     contador = contador + 1;
                 }/*end while*/
             }/*end while*/
-
-            /*opcion = (int)cOpcion;*/
 
             switch ( (int)cOpcion ){
                 case 49:
