@@ -51,10 +51,16 @@ sighandler_t ManejadorSenalOperaciones (void){
                   printf("Se volvera a intentar despues\n");
                   sleep(5);
                } else creado = 1;
+               /*end if*/
             }  while (creado == 0);
             /*end do while*/
 
             numero_bytes = read (id_pipe_cliente_a_servidor, &mensaje_recibido, sizeof(mensaje_del_cliente) );
+            if(numero_bytes == -1){
+                perror("No se pudo leer un pipe: ");
+                exit(1);
+            }/*end if*/
+
             if(numero_bytes > 0){
                 printf("Recibido paquete del cliente con id %d y pid %d\n",  mensaje_recibido.numero_cliente,
                     mensaje_recibido.pid);
@@ -106,6 +112,7 @@ sighandler_t ManejadorSenalTerminacion (void){
     printf("Memoria liberada\n");
     printf("Se cierra servidor\n");
     char pipe_desconexion[TAMANO_NOMBRE_PIPE];
+    int resultado_unlink;
 
     strcpy(pipe_desconexion, pipe_inicial);
     strcat(pipe_desconexion, "_d");
@@ -129,8 +136,16 @@ sighandler_t ManejadorSenalTerminacion (void){
     free(arreglo_usuarios);
     arreglo_usuarios = NULL;
 
-    unlink(pipe_inicial);
-    unlink(pipe_desconexion);
+    resultado_unlink = unlink(pipe_inicial);
+    if(resultado_unlink == -1){
+        perror("No se pudo eliminar un pipe: ");
+        exit(1);
+    }
+    resultado_unlink = unlink(pipe_desconexion);
+    if(resultado_unlink == -1){
+        perror("No se pudo eliminar un pipe: ");
+        exit(1);
+    }
 
     exit(1);
 }
@@ -167,10 +182,15 @@ sighandler_t ManejadorSenalDesconexion (void){
           printf("Se volvera a intentar despues\n");
           sleep(5);
       } else creado = 1;
+      /*end if*/
   }  while (creado == 0);
   /*end do while*/
 
   numero_bytes = read (id_pipe, &mensaje_recibido, sizeof(mensaje_del_cliente) );
+  if(numero_bytes == -1){
+      perror("No se pudo leer un pipe: ");
+      exit(1);
+  }/*end if*/
   if(numero_bytes > 0){
       printf("Recibido paquete del cliente con id %d y pid %d\n",  mensaje_recibido.numero_cliente,
           mensaje_recibido.pid);
@@ -199,8 +219,8 @@ Variables globales usadas: clientes_estados, arreglo_usuarios
 */
 void AdicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir){
 
-    int creado=0;
-    int id_pipe_servidor_a_cliente, confirmacion_senal;
+    int creado=0, resultado_write;
+    int id_pipe_servidor_a_cliente, confirmacion_senal, resultado_close;
     mensaje_del_servidor mensaje_para_cliente;
     char string_usuario_a_seguir[TAMANO_STRING_ID_USUARIO];
 
@@ -242,14 +262,25 @@ void AdicionarSeguidor(int numero_usuario_seguidor, int numero_usuario_a_seguir)
           printf("Se volvera a intentar despues\n");
           sleep(5);
        } else creado = 1;
+       /*end if*/
     }  while (creado == 0);
     /*end do while*/
 
-    write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    resultado_write = write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    if(resultado_write ==-1){
+        perror("No se pudo escribir en un pipe: ");
+        exit(1);
+    }
+    resultado_close = close(id_pipe_servidor_a_cliente);
+    if(resultado_close == -1){
+        perror("No se pudo cerrar un pipe del lado escritor: ");
+        exit(1);
+    }
 
     confirmacion_senal = kill (clientes_estados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
     if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
+        exit(1);
     }/*end if*/
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientes_estados[numero_usuario_seguidor].pid);
@@ -272,8 +303,8 @@ Variables globales usadas: clientes_estados, arreglo_usuarios
 */
 void RemoverSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
 
-    int creado=0;
-    int id_pipe_servidor_a_cliente, confirmacion_senal;
+    int creado=0, resultado_write;
+    int id_pipe_servidor_a_cliente, confirmacion_senal, resultado_close;
     mensaje_del_servidor mensaje_para_cliente;
     char string_usuario_seguido[TAMANO_STRING_ID_USUARIO];
 
@@ -312,14 +343,25 @@ void RemoverSeguidor(int numero_usuario_seguidor, int numero_usuario_seguido){
           printf("Se volvera a intentar despues\n");
           sleep(5);
        } else creado = 1;
+       /*end if*/
     }  while (creado == 0);
     /*end do while*/
 
-    write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    resultado_write = write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    if(resultado_write ==-1){
+        perror("No se pudo escribir en un pipe: ");
+        exit(1);
+    }
+    resultado_close = close(id_pipe_servidor_a_cliente);
+    if(resultado_close == -1){
+        perror("No se pudo cerrar un pipe del lado escritor: ");
+        exit(1);
+    }
 
     confirmacion_senal = kill (clientes_estados[numero_usuario_seguidor].pid, SIGUSR1); /*enviar la señal*/
     if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
+        exit(1);
     }/*end if*/
     printf("Enviada respuesta operación follow a cliente con id %d y pid %d\n",
         numero_usuario_seguidor+1, clientes_estados[numero_usuario_seguidor].pid);
@@ -408,9 +450,9 @@ Variables globales usadas: numero_usuarios, arreglo_usuarios
 */
 void EnviarTweetsASeguidorRecienConectado(comunicacion_inicial_cliente nuevo_cliente){
 
-    int id_pipe_servidor_a_cliente, confirmacion_senal, i, j, creado;
+    int id_pipe_servidor_a_cliente, confirmacion_senal, i, j, creado, resultado_write;
     mensaje_del_servidor mensaje_para_cliente;
-    int indice = nuevo_cliente.numero_cliente-1;
+    int indice = nuevo_cliente.numero_cliente-1, resultado_close;
 
     mensaje_para_cliente.pid = getpid();
     mensaje_para_cliente.operacion = 4;
@@ -428,6 +470,7 @@ void EnviarTweetsASeguidorRecienConectado(comunicacion_inicial_cliente nuevo_cli
                           printf("Se volvera a intentar despues\n");
                           sleep(5);
                        } else creado = 1;
+                       /*end if*/
                     }  while (creado == 0);
                     /*end do while*/
 
@@ -438,11 +481,20 @@ void EnviarTweetsASeguidorRecienConectado(comunicacion_inicial_cliente nuevo_cli
                     strcpy(mensaje_para_cliente.mensaje, arreglo_usuarios[i].tweets[j]);
                     printf("Tweet guardado para enviar: %s\n", mensaje_para_cliente.mensaje );
 
-                    write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+                    resultado_write = write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+                    if(resultado_write ==-1){
+                        perror("No se pudo escribir en un pipe: ");
+                        exit(1);
+                    }
                     printf("Enviado tweet guardado a cliente con id %d y pid %d\n", indice+1, nuevo_cliente.pid);
                 }/*end for*/
             }/*end if*/
         }/*end for*/
+        resultado_close = close(id_pipe_servidor_a_cliente);
+        if(resultado_close == -1){
+            perror("No se pudo cerrar un pipe del lado escritor: ");
+            exit(1);
+        }
     }/*end if*/
 
 }
@@ -460,7 +512,8 @@ Variables globales usadas: numero_usuarios, clientes_estados, arreglo_usuarios
 void EnviarTweetASeguidoresConectados(mensaje_del_cliente mensaje_recibido){
 
   mensaje_del_servidor mensaje_para_cliente;
-  int id_pipe_servidor_a_cliente, confirmacion_senal, i, j, creado;
+  int id_pipe_servidor_a_cliente, confirmacion_senal, i, j, creado, resultado_write;
+  int resultado_close;
   bool b;
 
   mensaje_para_cliente.pid = getpid();
@@ -482,14 +535,25 @@ void EnviarTweetASeguidoresConectados(mensaje_del_cliente mensaje_recibido){
                     printf("Se volvera a intentar despues\n");
                     sleep(5);
                  } else creado = 1;
+                 /*end if*/
               }  while (creado == 0);
               /*end do while*/
 
-              write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+              resultado_write = write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+              if(resultado_write ==-1){
+                  perror("No se pudo escribir en un pipe: ");
+                  exit(1);
+              }
+              resultado_close = close(id_pipe_servidor_a_cliente);
+              if(resultado_close == -1){
+                  perror("No se pudo cerrar un pipe del lado escritor: ");
+                  exit(1);
+              }
 
               confirmacion_senal = kill (clientes_estados[i].pid, SIGUSR1); /*enviar la señal*/
               if(confirmacion_senal == -1){
                   perror("No se pudo enviar señal");
+                  exit(1);
               }/*end if*/
               printf("Enviado tweet a cliente con id %d y pid %d\n", i+1, clientes_estados[i].pid);
       }/*end if*/
@@ -515,6 +579,7 @@ Variables globales usadas: numero_usuarios, clientes_estados
 void ManejarNuevaConexion(comunicacion_inicial_cliente nuevo_cliente){
 
     int id_pipe_servidor_a_cliente, creado = 0, confirmacion_senal, id_pipe_cliente_a_servidor;
+    int resultado_write, resultado_close;
     mensaje_del_servidor mensaje_para_cliente;
 
     printf("Enviando respuesta inicial a cliente con id %d y pid %d\n", nuevo_cliente.numero_cliente, nuevo_cliente.pid);
@@ -543,6 +608,7 @@ void ManejarNuevaConexion(comunicacion_inicial_cliente nuevo_cliente){
                   printf("Se volvera a intentar despues\n");
                   sleep(5);
                } else creado = 1;
+               /*end if*/
             }  while (creado == 0);
             /*end do while*/
         }/*end if*/
@@ -555,10 +621,20 @@ void ManejarNuevaConexion(comunicacion_inicial_cliente nuevo_cliente){
           printf("Se volvera a intentar despues\n");
           sleep(5);
        } else creado = 1;
+       /*end if*/
     }  while (creado == 0);
     /*end do while*/
 
-    write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    resultado_write = write(id_pipe_servidor_a_cliente, &mensaje_para_cliente, sizeof(mensaje_del_servidor) );
+    if(resultado_write ==-1){
+        perror("No se pudo escribir en un pipe: ");
+        exit(1);
+    }
+    resultado_close = close(id_pipe_servidor_a_cliente);
+    if(resultado_close == -1){
+        perror("No se pudo cerrar un pipe del lado escritor: ");
+        exit(1);
+    }
     printf("Enviada respuesta inicial a cliente con id %d y pid %d\n", nuevo_cliente.numero_cliente, nuevo_cliente.pid);
 
     if(mensaje_para_cliente.operacion == 0){ /*si la conexión fue exitosa*/
@@ -568,6 +644,7 @@ void ManejarNuevaConexion(comunicacion_inicial_cliente nuevo_cliente){
     confirmacion_senal = kill (nuevo_cliente.pid, SIGUSR1); /*enviar la señal*/
     if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
+        exit(1);
     }/*end if*/
     printf("\n");
 
@@ -698,6 +775,7 @@ int main (int argc, char **argv){
            printf(" Se volvera a intentar despues\n");
            sleep(10);
        } else creado = 1;
+       /*end if*/
     } while (creado == 0);
     /*end do while*/
 
@@ -744,12 +822,13 @@ int main (int argc, char **argv){
                printf(" Se volvera a intentar despues\n");
                sleep(5);
            } else creado = 1;
+           /*end if*/
         } while (creado == 0);
         /*end do while*/
 
         numero_bytes = read (id_pipe_inicial, &datos_proceso_cliente, sizeof(comunicacion_inicial_cliente) );
         if (numero_bytes == -1){
-            perror("proceso servidor: ");
+            perror("Error al leer en pipe: ");
             exit(1);
         }/*end if*/
 
