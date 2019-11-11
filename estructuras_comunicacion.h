@@ -17,29 +17,29 @@ Fecha de última modificación: 04/11/19
 
 typedef struct data {
     int pid;
-    int numeroCliente;
+    int numero_cliente;
     char pipe_cliente_a_servidor[TAMANO_NOMBRE_PIPE];
     char pipe_servidor_a_cliente[TAMANO_NOMBRE_PIPE];
-} comunicacionInicialCliente;
+} comunicacion_inicial_cliente;
 
 typedef struct {
     int pid;
     int operacion;
-    int idTweetero; /*si se envió tweet acá se envía el id de quién lo hizo*/
+    int id_tweetero; /*si se envió tweet acá se envía el id de quién lo hizo*/
     char mensaje[TAMANO_TWEET];
-} mensajeDelServidor;
+} mensaje_del_servidor;
 
 typedef struct {
     int pid;
     int operacion; /*1 para follow, 2 unfollow, 3 tweet, 4 desconexión*/
-    int numeroCliente;
+    int numero_cliente;
     char mensaje[TAMANO_TWEET];
     int numero_cliente_follow_unfollow;
-} mensajeDelCliente;
+} mensaje_del_cliente;
 
 typedef struct {
     int pid;
     char pipe_cliente_a_servidor[TAMANO_NOMBRE_PIPE];
     char pipe_servidor_a_cliente[TAMANO_NOMBRE_PIPE];
     bool activo;
-} estadosClientes;
+} estados_clientes;

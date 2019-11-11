@@ -5,15 +5,15 @@ Objetivo: implementa las funciones que usa cada proceso cliente. En términos
   generales provee implementaciones par iniciar el proceso cliente, enviar datos
   al proceso servidor a través de pipes y recibir datos del servidor también por
   medio de pipes a raíz del envío de una señal.
-Funciones: signalHandler, follow, unfollow, enviarTweet, desconectar,
-  imprimirInstruccionesComando, main
+Funciones: ManejadorSenal, Follow, Unfollow, EnviarTweet, Desconectar,
+  ImprimirInstruccionesComando, main
 Fecha de última modificación: 04/11/19
 */
 
 #include "cliente.h"
 
 /*
-Función: signalHandler
+Función: ManejadorSenal
 Autores de la función: Adrián García y Luis Rosales.
 Parámetros de entrada: ninguno.
 Retorno: ninguno.
@@ -23,14 +23,15 @@ del pipe servidor_a_cliente. Dependiendo de la operación de la que se recibió
 respuesta (conexión, follow, unfollow, tweet o desconexión) del servidor, se
 realiza una impresión específica por pantalla para comunicar los resultasdos
 al cliente.
+Variables globales usadas: id_pipe_servidor_a_cliente, pipe_servidor_a_cliente,
+pid_servidor, pipe_cliente_a_servidor
 */
-sighandler_t signalHandler (void){
+sighandler_t ManejadorSenal (void){
 
     int numero_bytes;
     int creado;
-    char mensaje[TAMANO_TWEET];
-    mensajeDelServidor mensajeRecibido;
-    mensajeDelServidor mensaje_con_tweet_anterior;
+    mensaje_del_servidor mensaje_recibido;
+    mensaje_del_servidor mensaje_con_tweet_anterior;
 
     do {
        id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
@@ -42,7 +43,7 @@ sighandler_t signalHandler (void){
     } while (creado == 0);
     /*end do while*/
 
-    numero_bytes = read (id_pipe_servidor_a_cliente, &mensajeRecibido, sizeof(mensajeDelServidor) );
+    numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_recibido, sizeof(mensaje_del_servidor) );
     if (numero_bytes == -1){
         perror("proceso servidor: ");
         exit(1);
@@ -50,31 +51,31 @@ sighandler_t signalHandler (void){
 
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
 
-    pidServidor = mensajeRecibido.pid;
+    pid_servidor = mensaje_recibido.pid;
 
-    switch (mensajeRecibido.operacion){
+    switch (mensaje_recibido.operacion){
       case -2:
-          printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a desconectar.");
+          printf("El id del cliente no es válido, ya se encuentra conectado. Se procede a Desconectar.");
           break;
       case -1:
-          printf("El id del cliente no es válido, no existe dentro del registro. Se procede a desconectar.");
+          printf("El id del cliente no es válido, no existe dentro del registro. Se procede a Desconectar.");
           break;
       case 0:
           printf("El id del cliente es válido");
           break;
       case 1: /*follow*/
-          printf("Respuesta de operación follow:\n %s", mensajeRecibido.mensaje);
+          printf("Respuesta de operación follow:\n %s", mensaje_recibido.mensaje);
           break;
-      case 2: /*unfollow*/
-          printf("Respuesta de operación unfollow:\n %s", mensajeRecibido.mensaje);
+      case 2: /*Unfollow*/
+          printf("Respuesta de operación unfollow:\n %s", mensaje_recibido.mensaje);
           break;
       case 3: /*tweet*/
-          printf("Tweet realizado por cliente %d\n",mensajeRecibido.idTweetero);
-          printf("Tweet: %s\n", mensajeRecibido.mensaje);
+          printf("Tweet realizado por cliente %d\n",mensaje_recibido.id_tweetero);
+          printf("Tweet: %s\n", mensaje_recibido.mensaje);
           break;
     }/*end switch*/
 
-    if(mensajeRecibido.operacion == 0){ /*se pueden recibir tweets hechos ya por otros usuarios*/
+    if(mensaje_recibido.operacion == 0){ /*se pueden recibir tweets hechos ya por otros usuarios*/
 
         do {
            id_pipe_servidor_a_cliente = open(pipe_servidor_a_cliente, O_RDONLY | O_NONBLOCK);
@@ -86,19 +87,19 @@ sighandler_t signalHandler (void){
         } while (creado == 0);
         /*end do while*/
 
-        numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
+        numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensaje_del_servidor) );
         while(numero_bytes>0){
             if(mensaje_con_tweet_anterior.operacion == 4){
                 printf("\nMientras no estabas\n");
-                printf("Tweet realizado por cliente %d\n",mensaje_con_tweet_anterior.idTweetero);
+                printf("Tweet realizado por cliente %d\n",mensaje_con_tweet_anterior.id_tweetero);
                 printf("Tweet: %s\n", mensaje_con_tweet_anterior.mensaje);
             }
-            numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensajeDelServidor) );
+            numero_bytes = read (id_pipe_servidor_a_cliente, &mensaje_con_tweet_anterior, sizeof(mensaje_del_servidor) );
         }/*end while*/
     }/*end if*/
 
     printf("\n\n--------------Mensaje recibido desde el servidor--------------\n\n");
-    if(mensajeRecibido.operacion == -1 || mensajeRecibido.operacion == -2){
+    if(mensaje_recibido.operacion == -1 || mensaje_recibido.operacion == -2){
         unlink(pipe_cliente_a_servidor);
         unlink(pipe_servidor_a_cliente);
         printf("Eliminado: %s\n", pipe_cliente_a_servidor);
@@ -106,7 +107,7 @@ sighandler_t signalHandler (void){
         printf("Desconexion realizada\n");
         exit(1);
     }else{
-        clienteAceptado = true;
+        cliente_aceptado = true;
     }/*end if*/
 
 }
@@ -118,11 +119,12 @@ Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: solicita al usuario el número del usuario al que quiere seguir,
 luego envía la solicitud de follow al servidor.
+Variables globales usadas: id_pipe_cliente_a_servidor, pipe_cliente_a_servidor
 */
-void follow(){
+void Follow(){
 
-    int confirmacionSenal;
-    mensajeDelCliente mensaje_a_enviar;
+    int confirmacion_senal;
+    mensaje_del_cliente mensaje_a_enviar;
     int creado = 0, status, c, contador=0;
     int usuario_a_seguir;
 
@@ -133,12 +135,12 @@ void follow(){
         contador = contador + 1;
     }; /*end while*/
 
-    while(contador>0 || status!=1 || usuario_a_seguir <= 0 || usuario_a_seguir == idCliente){
+    while(contador>0 || status!=1 || usuario_a_seguir <= 0 || usuario_a_seguir == id_cliente){
         contador = 0;
         if( usuario_a_seguir <= 0 ){
             printf("Error: el número debe ser mayor a cero\n");
         }/*end if*/
-        if( usuario_a_seguir == idCliente ){
+        if( usuario_a_seguir == id_cliente ){
             printf("Error: no te puedes seguir a ti mismo\n");
         }/*end if*/
         if (contador>0 || status!=1){
@@ -153,7 +155,7 @@ void follow(){
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 1;
-    mensaje_a_enviar.numeroCliente = idCliente;
+    mensaje_a_enviar.numero_cliente = id_cliente;
     mensaje_a_enviar.numero_cliente_follow_unfollow = usuario_a_seguir;
 
     do {
@@ -166,28 +168,29 @@ void follow(){
     } while (creado == 0);
     /*end do while*/
 
-    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensaje_del_cliente));
 
     printf("Solicitud de follow enviada al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-    if(confirmacionSenal == -1){
+    confirmacion_senal = kill (pid_servidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
     }/*end if*/
 
 }
 
 /*
-Función: unfollow
+Función: Unfollow
 Autores de la función: Adrián García y Luis Rosales.
 Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: solicita al usuario el número del usuario al que quiere dejar de
-seguir, luego envía al servidor la solicitud de unfollow.
+seguir, luego envía al servidor la solicitud de Unfollow.
+Variables globales usadas: id_pipe_cliente_a_servidor, pipe_cliente_a_servidor
 */
-void unfollow(){
+void Unfollow(){
 
-    int confirmacionSenal;
-    mensajeDelCliente mensaje_a_enviar;
+    int confirmacion_senal;
+    mensaje_del_cliente mensaje_a_enviar;
     int creado = 0, status, c, contador=0;
     int usuario_a_dejar_de_seguir;
 
@@ -198,12 +201,12 @@ void unfollow(){
         contador = contador + 1;
     }; /*end while*/
 
-    while(contador>0 || status!=1 || usuario_a_dejar_de_seguir <= 0 || usuario_a_dejar_de_seguir == idCliente){
+    while(contador>0 || status!=1 || usuario_a_dejar_de_seguir <= 0 || usuario_a_dejar_de_seguir == id_cliente){
         contador = 0;
         if( usuario_a_dejar_de_seguir <= 0 ){
             printf("Error: el número debe ser mayor a cero\n");
         }/*end if*/
-        if( usuario_a_dejar_de_seguir == idCliente ){
+        if( usuario_a_dejar_de_seguir == id_cliente ){
             printf("Error: no te puedes dejar de seguir a ti mismo (porque no te puedes seguir a ti mismo)\n");
         }/*end if*/
         if (contador>0 || status!=1){
@@ -218,7 +221,7 @@ void unfollow(){
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 2;
-    mensaje_a_enviar.numeroCliente = idCliente;
+    mensaje_a_enviar.numero_cliente = id_cliente;
     mensaje_a_enviar.numero_cliente_follow_unfollow = usuario_a_dejar_de_seguir;
 
     do {
@@ -231,27 +234,28 @@ void unfollow(){
     } while (creado == 0);
     /*end do while*/
 
-    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+    write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensaje_del_cliente));
 
     printf("Solicitud de unfollow enviada al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-    if(confirmacionSenal == -1){
+    confirmacion_senal = kill (pid_servidor, SIGUSR1); /*enviar la señal*/
+    if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
     }/*end if*/
 }
 
 /*
-Función: enviarTweet
+Función: EnviarTweet
 Autores de la función: Adrián García y Luis Rosales.
 Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: solicita al usuario introducir el tweet que quiere enviar y luego
 envía este al servidor.
+Variables globales usadas: id_pipe_cliente_a_servidor, pipe_cliente_a_servidor
 */
-void enviarTweet(){
+void EnviarTweet(){
 
-    int confirmacionSenal;
-    mensajeDelCliente mensaje_a_enviar;
+    int confirmacion_senal;
+    mensaje_del_cliente mensaje_a_enviar;
     char tweet[TAMANO_TWEET];
     int creado = 0;
     int c;
@@ -272,7 +276,7 @@ void enviarTweet(){
     }else{
         mensaje_a_enviar.pid = getpid();
         mensaje_a_enviar.operacion = 3;
-        mensaje_a_enviar.numeroCliente = idCliente;
+        mensaje_a_enviar.numero_cliente = id_cliente;
         strcpy(mensaje_a_enviar.mensaje , tweet);
 
         do {
@@ -285,40 +289,41 @@ void enviarTweet(){
         } while (creado == 0);
         /*end do while*/
 
-        write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+        write(id_pipe_cliente_a_servidor, &mensaje_a_enviar , sizeof(mensaje_del_cliente));
 
         printf("Tweet enviado al servidor\n");
-        confirmacionSenal = kill (pidServidor, SIGUSR1); /*enviar la señal*/
-        if(confirmacionSenal == -1){
+        confirmacion_senal = kill (pid_servidor, SIGUSR1); /*enviar la señal*/
+        if(confirmacion_senal == -1){
             perror("No se pudo enviar señal");
         }/*end if*/
     }/*end if*/
 }
 
 /*
-Función: desconectar
+Función: Desconectar
 Autores de la función: Adrián García y Luis Rosales.
 Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: envía al servidor una solicitud de desconexión.
+Variables globales usadas: ninguna.
 */
-void desconectar(char* pipeInicial){
+void Desconectar(char* pipe_inicial){
 
-    int confirmacionSenal;
+    int confirmacion_senal;
     int creado = 0;
-    mensajeDelCliente mensaje_a_enviar;
+    mensaje_del_cliente mensaje_a_enviar;
     int id_pipe;
-    char pipeDesconexion[TAMANO_NOMBRE_PIPE];
+    char pipe_desconexion[TAMANO_NOMBRE_PIPE];
 
-    strcpy(pipeDesconexion, pipeInicial);
-    strcat(pipeDesconexion, "_d");
+    strcpy(pipe_desconexion, pipe_inicial);
+    strcat(pipe_desconexion, "_d");
 
     mensaje_a_enviar.pid = getpid();
     mensaje_a_enviar.operacion = 4;
-    mensaje_a_enviar.numeroCliente = idCliente;
+    mensaje_a_enviar.numero_cliente = id_cliente;
 
     do {
-       id_pipe = open(pipeDesconexion, O_WRONLY | O_NONBLOCK);
+       id_pipe = open(pipe_desconexion, O_WRONLY | O_NONBLOCK);
        if (id_pipe == -1) {
            perror("pipe");
            printf(" Se volvera a intentar despues\n");
@@ -327,24 +332,25 @@ void desconectar(char* pipeInicial){
     } while (creado == 0);
     /*end do while*/
 
-    write(id_pipe, &mensaje_a_enviar , sizeof(mensajeDelCliente));
+    write(id_pipe, &mensaje_a_enviar , sizeof(mensaje_del_cliente));
 
     printf("Desconexion avisada al servidor\n");
-    confirmacionSenal = kill (pidServidor, SIGUSR2); /*enviar la señal*/
-    if(confirmacionSenal == -1){
+    confirmacion_senal = kill (pid_servidor, SIGUSR2); /*enviar la señal*/
+    if(confirmacion_senal == -1){
         perror("No se pudo enviar señal");
     }/*end if*/
 }
 
 /*
-Función: imprimirInstruccionesComando
+Función: ImprimirInstruccionesComando
 Autores de la función: Luis Rosales.
 Parámetros de entrada: ninguno.
 Retorno: ninguno.
 Descripción: imprime las instrucciones generales de cómo ejecutar correctamente
 el comando para iniciar el proceso cliente.
+Variables globales usadas: ninguna
 */
-void imprimirInstruccionesComando(){
+void ImprimirInstruccionesComando(){
     printf("El comando correcto es: ");
     printf("cliente -i <Id> -p <pipeNom>\n\n");
     printf("donde <Id> es el número del cliente (mayor a cero)\n");
@@ -367,67 +373,69 @@ usuario desea realizar. Este ciclo se realiza mientras el usuario no seleccione
 la opción de desconexión. Para la operación solicitada, se llama a la función
 especializada en realizarla. Además, instala el manejador de la señal para
 recibir respuestas o mensajes enviados por el servidor.
+Variables globales usadas: pipe_cliente_a_servidor, pipe_servidor_a_cliente,
+id_pipe_servidor_a_cliente
 */
 int main (int argc, char **argv){
 
     int id_pipe_inicial, pid, creado = 0, res;
-    comunicacionInicialCliente datosProcesoCliente;
+    comunicacion_inicial_cliente datos_proceso_cliente;
     int opcion = 0;
     int numero_bytes;
     int status, c;
-    char cOpcion;
+    char c_opcion;
     int contador=0;
-    char stringPidProceso[TAMANO_STRING_ID_PROCESO];
-    char* pipeInicial;
+    char string_pid_proceso[TAMANO_STRING_ID_PROCESO];
+    char* pipe_inicial;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
 
-    clienteAceptado = false;
+    cliente_aceptado = false;
 
     /* Instalar manejador de la señal */
-    signal (SIGUSR1, (sighandler_t)signalHandler);
+    signal (SIGUSR1, (sighandler_t)ManejadorSenal);
 
     if(argc!=5){ /*No pueden haber más ni menos de 5 argumentos*/
         printf("\nError con número de argumentos\n\n");
-        imprimirInstruccionesComando();
+        ImprimirInstruccionesComando();
         exit(1);
     }else{
         if( !( (strcmp(argv[1],"-i") == 0 && strcmp(argv[3],"-p") == 0) ||
             (strcmp(argv[1],"-p") == 0 && strcmp(argv[3],"-i") == 0) ) ){
 
             printf("\nError con las banderas del comando\n\n");
-            imprimirInstruccionesComando();
+            ImprimirInstruccionesComando();
             exit(1);
         }/*end if*/
     }/*end if*/
 
     if( strcmp(argv[1],"-i") == 0 && strcmp(argv[3],"-p") ==0 ){
-        idCliente = atoi(argv[2]);
-        pipeInicial = argv[4];
+        id_cliente = atoi(argv[2]);
+        pipe_inicial = argv[4];
     }else{
-        idCliente = atoi(argv[4]);
-        pipeInicial = argv[2];
+        id_cliente = atoi(argv[4]);
+        pipe_inicial = argv[2];
     }/*end if*/
 
-    if(idCliente<=0){
+    if(id_cliente<=0){
         printf("\nError: el id del cliente debe ser mayor a cero\n\n");
-        imprimirInstruccionesComando();
+        ImprimirInstruccionesComando();
         exit(1);
     }/*end if*/
 
     pid = getpid();
 
-    sprintf(stringPidProceso, "%d", pid);
+    sprintf(string_pid_proceso, "%d", pid);
 
-    strcat(pipe_cliente_a_servidor, stringPidProceso);
+    strcat(pipe_cliente_a_servidor, string_pid_proceso);
     strcat(pipe_cliente_a_servidor, "_c_a_s");
-    strcat(pipe_servidor_a_cliente, stringPidProceso);
+    strcat(pipe_servidor_a_cliente, string_pid_proceso);
     strcat(pipe_servidor_a_cliente, "_s_a_c");
 
-    datosProcesoCliente.pid = pid;
-    strcpy(datosProcesoCliente.pipe_cliente_a_servidor, pipe_cliente_a_servidor);
-    strcpy(datosProcesoCliente.pipe_servidor_a_cliente, pipe_servidor_a_cliente);
-    datosProcesoCliente.numeroCliente = idCliente;
+    datos_proceso_cliente.pid = pid;
+    strcpy(datos_proceso_cliente.pipe_cliente_a_servidor, pipe_cliente_a_servidor);
+    strcpy(datos_proceso_cliente.pipe_servidor_a_cliente, pipe_servidor_a_cliente);
+    datos_proceso_cliente.numero_cliente = id_cliente;
 
     /*Se crea un pipe específico para la comunicación con el server.*/
     unlink(pipe_cliente_a_servidor);
@@ -459,7 +467,7 @@ int main (int argc, char **argv){
 
      /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
      do {
-        id_pipe_inicial = open(pipeInicial, O_WRONLY | O_NONBLOCK);
+        id_pipe_inicial = open(pipe_inicial, O_WRONLY | O_NONBLOCK);
         if (id_pipe_inicial == -1) {
             perror("pipe");
             printf(" Se volvera a intentar despues\n");
@@ -469,10 +477,10 @@ int main (int argc, char **argv){
      /*end do while*/
 
     /* se envia la información del cliente al servidor */
-    write(id_pipe_inicial, &datosProcesoCliente , sizeof(comunicacionInicialCliente));
+    write(id_pipe_inicial, &datos_proceso_cliente , sizeof(comunicacion_inicial_cliente));
 
     do{
-        if ( clienteAceptado == true ){
+        if ( cliente_aceptado == true ){
 
             printf("\n\nOPCIONES\n\n");
             printf("Presione 1 para follow\n");
@@ -481,22 +489,22 @@ int main (int argc, char **argv){
             printf("Presione 4 para desconexion\n");
             printf("Digite numero de la opcion: ");
 
-            status = scanf("%c", &cOpcion);
+            status = scanf("%c", &c_opcion);
             while ((c = fgetc(stdin)) != '\n' && c != EOF){ /* Flush stdin */
                 contador = contador + 1;
             }; /*end while*/
 
-            while(contador>0 || (int)cOpcion <49 || (int)cOpcion>52){
+            while(contador>0 || (int)c_opcion <49 || (int)c_opcion>52){
                 contador = 0;
                 printf("Error: por favor ingrese un número válido (entre 1 y 4)\n");
                 printf("Digite numero de la opcion: ");
-		            status = scanf("%c", &cOpcion);
+		            status = scanf("%c", &c_opcion);
                 while ((c = fgetc(stdin)) != '\n' && c != EOF){
                     contador = contador + 1;
                 }/*end while*/
             }/*end while*/
 
-            switch ( (int)cOpcion ){
+            switch ( (int)c_opcion ){
                 case 49:
                     opcion = 1;
                     break;
@@ -515,13 +523,13 @@ int main (int argc, char **argv){
 
                 switch (opcion){
                     case 1:
-                        follow();
+                        Follow();
                         break;
                     case 2:
-                        unfollow();
+                        Unfollow();
                         break;
                     case 3:
-                        enviarTweet();
+                        EnviarTweet();
                         break;
                 }/*end switch*/
             }/*end if*/
@@ -530,7 +538,7 @@ int main (int argc, char **argv){
     } while (opcion != 4);
     /*end do while*/
 
-    desconectar(pipeInicial);
+    Desconectar(pipe_inicial);
     unlink(pipe_cliente_a_servidor);
     unlink(pipe_servidor_a_cliente);
     printf("Eliminado: %s\n", pipe_cliente_a_servidor);
