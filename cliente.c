@@ -341,7 +341,7 @@ el comando para iniciar el proceso cliente.
 void imprimirInstruccionesComando(){
     printf("El comando correcto es: ");
     printf("cliente -i <Id> -p <pipeNom>\n\n");
-    printf("donde <Id> es el número del cliente\n");
+    printf("donde <Id> es el número del cliente (mayor a cero)\n");
     printf("y <pipeNom> es el nombre del pipe inicial para comunicación con el servidor\n");
     printf("y las banderas -i y -p son obligatorias\n\n");
 }
@@ -403,6 +403,12 @@ int main (int argc, char **argv){
         pipeInicial = argv[2];
     }
 
+    if(idCliente<=0){
+        printf("\nError: el id del cliente debe ser mayor a cero\n\n");
+        imprimirInstruccionesComando();
+        exit(1);
+    }
+
     /*printf("Pipe inicial: %s\n", pipeInicial);*/
 
     pid = getpid();
@@ -448,7 +454,7 @@ int main (int argc, char **argv){
 
      /* Se abre el pipe cuyo nombre se recibe como argumento del main. */
      do {
-        id_pipe_inicial = open(pipeInicial, O_WRONLY|O_NONBLOCK);
+        id_pipe_inicial = open(pipeInicial, O_WRONLY | O_NONBLOCK);
         if (id_pipe_inicial == -1) {
             perror("pipe");
             printf(" Se volvera a intentar despues\n");

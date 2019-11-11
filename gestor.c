@@ -148,36 +148,26 @@ sighandler_t signalHandlerDesconexion (void){
 
   printf("\n\nRecibiendo un paquete de un cliente\n");
 
-  for(i=0;i<numero_usuarios;i++){
+  creado = 0;
+  do {
+      id_pipe = open(pipeDesconexion, O_RDONLY | O_NONBLOCK);
+      if (id_pipe == -1) {
+          perror("Server abriendo el pipe especifico\n");
+          printf("Se volvera a intentar despues\n");
+          sleep(5);
+      } else creado = 1;
+  }  while (creado == 0);
 
-      if ( clientesEstados[i].activo == true ){
+  numero_bytes = read (id_pipe, &mensajeRecibido, sizeof(mensajeDelCliente) );
+  if(numero_bytes > 0){
+      printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
+          mensajeRecibido.pid);
+      desconectar(mensajeRecibido.numeroCliente-1);
 
-          creado = 0;
-          do {
-             id_pipe = open(pipeDesconexion, O_RDONLY);
-             if (id_pipe == -1) {
-                perror("Server abriendo el pipe especifico\n");
-                printf("Se volvera a intentar despues\n");
-                sleep(5);
-             } else creado = 1;
-          }  while (creado == 0);
-
-          numero_bytes = read (id_pipe, &mensajeRecibido, sizeof(mensajeDelCliente) );
-          /*if (numero_bytes == -1){
-              perror("proceso servidor: ");
-              /*exit(1);
-          }*/
-          if(numero_bytes > 0){
-              printf("Recibido paquete del cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
-                  mensajeRecibido.pid);
-              if (mensajeRecibido.operacion == 4){ // se va a desconectar
-                  desconectar(i);
-                  printf("Se desconecta el cliente con id %d y pid %d\n",  mensajeRecibido.numeroCliente,
-                          mensajeRecibido.pid);
-              }
-          }
-     }
+      printf("Cliente con id %d y pid %d se ha desconectado\n",  mensajeRecibido.numeroCliente,
+          mensajeRecibido.pid);
   }
+
   printf("El paquete ha sido procesado\n\n");
 }
 
@@ -461,8 +451,10 @@ void enviarTweetASeguidoresConectados(mensajeDelCliente mensajeRecibido){
   mensajeParaCliente.idTweetero = mensajeRecibido.numeroCliente;
 
   for(i=0;i<numero_usuarios;i++){
+
       if ( clientesEstados[i].activo == true && arreglo_usuarios[i].numero_siguiendo > 0 &&
          arreglo_usuarios[i].lista_siguiendo[mensajeRecibido.numeroCliente-1] == 1 ){
+
             /*si está siguiendo a quien envió el tweet*/
               creado = 0;
               do {
