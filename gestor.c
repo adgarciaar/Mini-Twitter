@@ -486,15 +486,15 @@ void EnviarTweetsASeguidorRecienConectado(comunicacion_inicial_cliente nuevo_cli
                         perror("No se pudo escribir en un pipe: ");
                         exit(1);
                     }
+                    resultado_close = close(id_pipe_servidor_a_cliente);
+                    if(resultado_close == -1){
+                        perror("No se pudo cerrar un pipe del lado escritor: ");
+                        exit(1);
+                    }
                     printf("Enviado tweet guardado a cliente con id %d y pid %d\n", indice+1, nuevo_cliente.pid);
                 }/*end for*/
             }/*end if*/
         }/*end for*/
-        resultado_close = close(id_pipe_servidor_a_cliente);
-        if(resultado_close == -1){
-            perror("No se pudo cerrar un pipe del lado escritor: ");
-            exit(1);
-        }
     }/*end if*/
 
 }
